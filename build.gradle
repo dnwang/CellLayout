@@ -1,0 +1,31 @@
+buildscript {
+    ext.supportVer = "28.0.0"
+
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.2.1'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+ext {
+    artifactId = "celllayout"
+    groupId = "org.pinwheel"
+    applicationId = "$groupId.$artifactId"
+
+    compileSdkVersion = 28
+    buildToolsVersion = "28.0.3"
+    minSdkVersion = 16
+    targetSdkVersion = 28
+    versionCode = 1
+    versionName = "0.0.1"
+}
