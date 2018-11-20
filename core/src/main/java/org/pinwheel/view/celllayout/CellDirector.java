@@ -4,8 +4,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
-import android.util.Log;
-import android.util.LongSparseArray;
 
 /**
  * Copyright (C), 2018 <br>
@@ -26,11 +24,7 @@ final class CellDirector {
     }
 
     void setRoot(Cell cell) {
-        if (hasRoot()) {
-            onCellUnMount(root, null);
-        }
         root = cell;
-        onCellMount(root, null);
     }
 
     Cell getRoot() {
@@ -62,16 +56,6 @@ final class CellDirector {
         return tmp;
     }
 
-    void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
-        if (hasRoot()) {
-            if (root instanceof CellGroup) {
-                ((CellGroup) root).foreachAllCells(withGroup, filter);
-            } else {
-                filter.call(root);
-            }
-        }
-    }
-
     LinearGroup findLinearGroupBy(Cell cell, final int orientation) {
         Cell parent = null != cell ? cell.getParent() : null;
         if (parent instanceof LinearGroup
@@ -84,80 +68,10 @@ final class CellDirector {
         }
     }
 
-    private final LongSparseArray<ValueAnimator> movingAnimator = new LongSparseArray<>(4);
+    private ValueAnimator movingAnimator;
     private final static float MOVE_SPEED = 1.5f; // px/ms
 
-    void scrollBy(final CellGroup cell, int dx, int dy, final boolean withAnimation) {
-        if (null == cell || (0 == dx && 0 == dy)) {
-            return;
-        }
-        if (cell instanceof LinearGroup) {
-            LinearGroup linear = (LinearGroup) cell;
-            final int contentWidth = linear.getContentWidth();
-            final int contentHeight = linear.getContentHeight();
-            // fix dx
-            int tmp = linear.getScrollX() + dx;
-            int max = -(contentWidth - linear.getWidth());
-            if (tmp > 0) {
-                dx = -linear.getScrollX();
-            } else if (tmp < max) {
-                dx = max - linear.getScrollX();
-            }
-            // fix dy
-            tmp = linear.getScrollY() + dy;
-            max = -(contentHeight - linear.getHeight());
-            if (tmp > 0) {
-                dy = -linear.getScrollY();
-            } else if (tmp < max) {
-                dy = max - linear.getScrollY();
-            }
-        }
-        Log.e("CellLayout", "[scrollBy] dx: " + dx + ", dy: " + dy);
-        if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
-            cell.scrollBy(dx, dy);
-        } else {
-            ValueAnimator anim = movingAnimator.get(cell.getId());
-            if (null != anim) {
-                anim.cancel();
-            }
-            final long duration = (long) (Math.max(Math.abs(dx), Math.abs(dy)) / MOVE_SPEED);
-            anim = ValueAnimator.ofPropertyValuesHolder(
-                    PropertyValuesHolder.ofInt("x", 0, dx),
-                    PropertyValuesHolder.ofInt("y", 0, dy)
-            ).setDuration(duration);
-            anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                int lastDx, lastDy;
-
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    int dx = (int) animation.getAnimatedValue("x");
-                    int dy = (int) animation.getAnimatedValue("y");
-                    cell.scrollBy(dx - lastDx, dy - lastDy);
-                    lastDx = dx;
-                    lastDy = dy;
-                }
-            });
-            anim.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationCancel(Animator animation) {
-                    remove();
-                }
-
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    remove();
-                }
-
-                private void remove() {
-                    movingAnimator.remove(cell.getId());
-                }
-            });
-            anim.start();
-            movingAnimator.put(cell.getId(), anim);
-        }
-    }
-
-    void scrollToCenter(final Cell cell, final boolean withAnimation) {
+    void moveToCenter(final Cell cell, final boolean withAnimation) {
         if (null == cell) {
             return;
         }
@@ -166,108 +80,171 @@ final class CellDirector {
         final int cellCenterX = cell.getLeft() + cell.getWidth() / 2;
         final int cellCenterY = cell.getTop() + cell.getHeight() / 2;
         if (!withAnimation) {
-            scrollBy(findLinearGroupBy(cell, LinearGroup.VERTICAL), 0, centerY - cellCenterY, false);
-            scrollBy(findLinearGroupBy(cell, LinearGroup.HORIZONTAL), centerX - cellCenterX, 0, false);
+            moveBy(findLinearGroupBy(cell, LinearGroup.VERTICAL), 0, centerY - cellCenterY);
+            moveBy(findLinearGroupBy(cell, LinearGroup.HORIZONTAL), centerX - cellCenterX, 0);
+            onMoveComplete();
         } else {
-            scrollBy(findLinearGroupBy(cell, LinearGroup.VERTICAL), 0, centerY - cellCenterY, true);
-            scrollBy(findLinearGroupBy(cell, LinearGroup.HORIZONTAL), centerX - cellCenterX, 0, true);
+            final LinearGroup vLinear = findLinearGroupBy(cell, LinearGroup.VERTICAL);
+            final int dy = centerY - cellCenterY;
+            final LinearGroup hLinear = findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
+            final int dx = centerX - cellCenterX;
+            if (null != movingAnimator) {
+                movingAnimator.cancel();
+            }
+            final long duration = (long) (Math.max(Math.abs(dx), Math.abs(dy)) / MOVE_SPEED);
+            movingAnimator = ValueAnimator.ofPropertyValuesHolder(
+                    PropertyValuesHolder.ofInt("x", 0, dx),
+                    PropertyValuesHolder.ofInt("y", 0, dy)
+            ).setDuration(duration);
+            movingAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                int lastDx, lastDy;
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator anim) {
+                    int dx = (int) anim.getAnimatedValue("x");
+                    int dy = (int) anim.getAnimatedValue("y");
+                    moveBy(hLinear, dx - lastDx, 0);
+                    moveBy(vLinear, 0, dy - lastDy);
+                    lastDx = dx;
+                    lastDy = dy;
+                }
+            });
+            movingAnimator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    onMoveComplete();
+                }
+            });
+            movingAnimator.start();
         }
     }
 
-    void measure(int width, int height) {
-        if (hasRoot() && cellChanged) {
-            root.measure(width, height);
+    private final int[] diff = new int[2];
+
+    void moveBy(final CellGroup group, int dx, int dy) {
+        if (null == group) {
+            return;
         }
-    }
-
-    private boolean cellChanged;
-
-    void layout(boolean viewChanged, int l, int t, int r, int b) {
-        if (hasRoot() && (viewChanged || cellChanged)) {
-            root.layout(l, t);
-            cellChanged = false;
-            //
-            refreshState();
+        diff[0] = dx;
+        diff[1] = dy;
+        group.scrollFix(diff);
+        final int newDx = diff[0];
+        final int newDy = diff[1];
+        if (0 == newDx && 0 == newDy) {
+            return;
         }
-    }
-
-    private void refreshState() {
-        foreachAllCells(true, new Filter<Cell>() {
+        group.scrollBy(newDx, newDy);
+        group.foreachAllCells(true, new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
-                cell.updateVisibleSate();
+                if (cell == group) {
+                    // don't scroll self
+                    return false;
+                }
+                int fromX = cell.getLeft();
+                int fromY = cell.getTop();
+                cell.offset(newDx, newDy);
+                onCellPositionChanged(cell, fromX, fromY);
+                // check visible
+                updateVisibleState(cell, false);
                 return false;
             }
         });
     }
 
-    void onCellMount(Cell cell, CellGroup parent) {
-        cellChanged = true;
-        if (cell instanceof CellGroup) {
-            ((CellGroup) cell).foreachAllCells(true, new Filter<Cell>() {
-                @Override
-                public boolean call(Cell cell) {
-                    cell.attach(CellDirector.this);
-                    return false;
-                }
-            });
-        } else {
-            cell.attach(CellDirector.this);
+    void measure(int width, int height) {
+        if (hasRoot()) {
+            root.measure(width, height);
         }
     }
 
-    void onCellAttached(Cell cell) {
+    void layout(int l, int t, int r, int b) {
+        if (hasRoot()) {
+            root.layout(l, t);
+        }
+    }
+
+    void refreshState(final boolean force) {
+        foreachAllCells(true, new Filter<Cell>() {
+            @Override
+            public boolean call(Cell cell) {
+                // visible state
+                updateVisibleState(cell, force);
+                return false;
+            }
+        });
+        onStateChanged();
+    }
+
+    private void updateVisibleState(Cell cell, boolean force) {
+        final boolean oldState = cell.isVisible();
+        cell.setVisible(root.getLeft(), root.getTop(), root.getRight(), root.getBottom());
+        if (force || oldState != cell.isVisible()) {
+            onCellVisibleChanged(cell);
+        }
+    }
+
+    private void reLayout() {
+        if (hasRoot()) {
+            measure(root.getWidth(), root.getHeight());
+            layout(root.getLeft(), root.getTop(), root.getRight(), root.getBottom());
+            refreshState(true);
+        }
+    }
+
+    private void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
+        if (hasRoot()) {
+            if (root instanceof CellGroup) {
+                ((CellGroup) root).foreachAllCells(withGroup, filter);
+            } else {
+                filter.call(root);
+            }
+        }
+    }
+
+    void onStateChanged() {
         if (null != callback) {
-            callback.onAttached(cell);
+            callback.onStateChanged();
         }
     }
 
-    void onCellDetached(Cell cell) {
-        if (null != callback) {
-            callback.onDetached(cell);
-        }
-    }
-
-    void onCellUnMount(Cell cell, CellGroup parent) {
-        cellChanged = true;
-        if (cell instanceof CellGroup) {
-            ((CellGroup) cell).foreachAllCells(true, new Filter<Cell>() {
-                @Override
-                public boolean call(Cell cell) {
-                    cell.detach();
-                    return false;
+    void onMoveComplete() {
+        CellLayout.time("onMoveComplete", new Runnable() {
+            @Override
+            public void run() {
+                if (null != callback) {
+                    callback.onMoveComplete();
                 }
-            });
-        } else {
-            cell.detach();
-        }
+            }
+        });
     }
 
-    void onCellPositionChanged(Cell cell, int fromX, int fromY) {
+    private void onCellPositionChanged(Cell cell, int fromX, int fromY) {
         if (null != callback) {
             callback.onPositionChanged(cell, fromX, fromY);
         }
     }
 
-    void onCellVisibleChanged(final Cell cell) {
-        if (null != callback) {
-            CellLayout.time("onCellVisibleChanged", new Runnable() {
-                @Override
-                public void run() {
+    private void onCellVisibleChanged(final Cell cell) {
+        CellLayout.time("onCellVisibleChanged", new Runnable() {
+            @Override
+            public void run() {
+                if (null != callback) {
                     callback.onVisibleChanged(cell);
                 }
-            });
-        }
+            }
+        });
+
     }
 
     interface LifeCycleCallback {
-        void onAttached(Cell cell);
+        void onStateChanged();
+
+        void onMoveComplete();
 
         void onPositionChanged(Cell cell, int fromX, int fromY);
 
         void onVisibleChanged(Cell cell);
-
-        void onDetached(Cell cell);
     }
 
 }

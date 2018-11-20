@@ -84,6 +84,29 @@ public class LinearGroup extends CellGroup {
     }
 
     @Override
+    public void scrollFix(int[] diff) {
+        if (0 == diff[0] && 0 == diff[1]) {
+            return;
+        }
+        // fix dx
+        int tmp = getScrollX() + diff[0];
+        int max = -(contentWidth - getWidth());
+        if (tmp > 0) {
+            diff[0] = -getScrollX();
+        } else if (tmp < max) {
+            diff[0] = max - getScrollX();
+        }
+        // fix dy
+        tmp = getScrollY() + diff[1];
+        max = -(contentHeight - getHeight());
+        if (tmp > 0) {
+            diff[1] = -getScrollY();
+        } else if (tmp < max) {
+            diff[1] = max - getScrollY();
+        }
+    }
+
+    @Override
     public void scrollBy(int dx, int dy) {
         dy = HORIZONTAL == orientation ? 0 : dy;
         dx = HORIZONTAL != orientation ? 0 : dx;

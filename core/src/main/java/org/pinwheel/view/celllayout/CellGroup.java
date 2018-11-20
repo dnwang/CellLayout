@@ -1,5 +1,6 @@
 package org.pinwheel.view.celllayout;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,28 +43,17 @@ public class CellGroup extends Cell implements Movable {
         cell.setParent(this);
         cell.setParams(p);
         subCells.add(cell);
-        //
-        final CellDirector director = getDirector();
-        if (null != director) {
-            director.onCellMount(cell, this);
-        }
     }
 
     public void removeCell(Cell cell) {
         if (null == cell) {
             return;
         }
-        final boolean has = subCells.contains(cell);
-        if (!has) {
+        if (!subCells.contains(cell)) {
             return;
         }
         subCells.remove(cell);
         cell.setParent(null);
-        //
-        final CellDirector director = getDirector();
-        if (null != director) {
-            director.onCellUnMount(cell, this);
-        }
     }
 
     public Cell getCellAt(int order) {
@@ -77,26 +67,13 @@ public class CellGroup extends Cell implements Movable {
     private int scrollX, scrollY;
 
     @Override
+    public void scrollFix(int[] diff) {
+    }
+
+    @Override
     public void scrollBy(final int dx, final int dy) {
         if (0 == dx && 0 == dy) {
             return;
-        }
-        final int size = getCellCount();
-        for (int i = 0; i < size; i++) {
-            Cell cell = getCellAt(i);
-            if (cell instanceof CellGroup) {
-                ((CellGroup) cell).foreachAllCells(true, new Filter<Cell>() {
-                    @Override
-                    public boolean call(Cell cell) {
-                        cell.offset(dx, dy);
-                        cell.updateVisibleSate();
-                        return false;
-                    }
-                });
-            } else {
-                cell.offset(dx, dy);
-                cell.updateVisibleSate();
-            }
         }
         scrollX += dx;
         scrollY += dy;
@@ -164,7 +141,7 @@ public class CellGroup extends Cell implements Movable {
         return intercept;
     }
 
-    public static class Params {
+    public static class Params implements Serializable {
         @Attribute
         public int width, height;
         @Attribute

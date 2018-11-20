@@ -1,5 +1,7 @@
 package org.pinwheel.view.celllayout;
 
+import java.io.Serializable;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -9,17 +11,15 @@ package org.pinwheel.view.celllayout;
  * @author dnwang
  * @version 2018/11/15,13:35
  */
-public class Cell {
+public class Cell implements Serializable {
 
     private static long ID_OFFSET = 0;
     private final long id;
     //
-    private CellDirector director;
-    //
     @Attribute
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
     //
-    private int x, y;
+    private int left, top;
     private int width, height;
     //
     private boolean isVisible;
@@ -29,26 +29,6 @@ public class Cell {
 
     public Cell() {
         this.id = ++ID_OFFSET;
-    }
-
-    final void attach(CellDirector director) {
-        this.director = director;
-        this.director.onCellAttached(this);
-    }
-
-    final void detach() {
-        parent = null;
-        isVisible = false;
-        if (null != director) {
-            director.onCellDetached(this);
-        }
-        director = null;
-    }
-
-    final void removeFromParent() {
-        if (null != parent) {
-            parent.removeCell(this);
-        }
     }
 
     protected void measure(int width, int height) {
@@ -68,22 +48,18 @@ public class Cell {
         this.parent = parent;
     }
 
-    private void setVisible(int left, int top, int right, int bottom) {
-        final int l = getLeft(), t = getTop(), r = getRight(), b = getBottom();
-        if (right > left && bottom > top && r > l && b > t) {
-            if (r < left || b < top || l > right || t > bottom) {
-                isVisible = false;
-            } else {
-                isVisible = true;
-            }
+    protected void setVisible(int l, int t, int r, int b) {
+        final int right = getRight(), bottom = getBottom();
+        if (r > l && b > t && right > left && bottom > top) {
+            isVisible = right >= l && bottom >= t && left <= r && top <= b;
         } else {
             isVisible = false;
         }
     }
 
     private void setPosition(int x, int y) {
-        this.x = x;
-        this.y = y;
+        this.left = x;
+        this.top = y;
     }
 
     public long getId() {
@@ -91,19 +67,19 @@ public class Cell {
     }
 
     public int getLeft() {
-        return x;
+        return left;
     }
 
     public int getTop() {
-        return y;
+        return top;
     }
 
     public int getRight() {
-        return getLeft() + getWidth();
+        return left + width;
     }
 
     public int getBottom() {
-        return getTop() + getHeight();
+        return top + height;
     }
 
     public boolean contains(int x, int y) {
@@ -122,19 +98,7 @@ public class Cell {
         if (0 == dx && 0 == dy) {
             return;
         }
-        final int oldX = getLeft();
-        final int oldY = getTop();
-        setPosition(oldX + dx, oldY + dy);
-        director.onCellPositionChanged(this, oldX, oldY);
-    }
-
-    public final void updateVisibleSate() {
-        final boolean oldState = isVisible();
-        Cell root = director.getRoot();
-        setVisible(root.getLeft(), root.getTop(), root.getRight(), root.getBottom());
-        if (oldState != isVisible()) {
-            director.onCellVisibleChanged(this);
-        }
+        setPosition(getLeft() + dx, getTop() + dy);
     }
 
     public final CellGroup.Params getParams() {
@@ -143,10 +107,6 @@ public class Cell {
 
     public final CellGroup getParent() {
         return parent;
-    }
-
-    public final CellDirector getDirector() {
-        return director;
     }
 
     public final boolean isVisible() {
