@@ -10,9 +10,6 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
@@ -36,19 +33,20 @@ public final class CellLayoutActivity extends Activity {
 
     private CellLayout cellLayout;
     private LongSparseArray<Bundle> cellDataMap;
+    private Cell root;
 
     private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
         @Override
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            if (null != oldFocus && cellLayout == oldFocus.getParent()) {
-                oldFocus.setScaleX(1.0f);
-                oldFocus.setScaleY(1.0f);
-            }
+//            if (null != oldFocus && cellLayout == oldFocus.getParent()) {
+//                oldFocus.setScaleX(1.0f);
+//                oldFocus.setScaleY(1.0f);
+//            }
             if (null != newFocus && cellLayout == newFocus.getParent()) {
-                cellLayout.moveToCenter(newFocus, true);
-                newFocus.bringToFront();
-                newFocus.setScaleX(1.1f);
-                newFocus.setScaleY(1.1f);
+                cellLayout.moveToCenter(newFocus, false);
+//                newFocus.bringToFront();
+//                newFocus.setScaleX(1.1f);
+//                newFocus.setScaleY(1.1f);
             }
         }
     };
@@ -62,10 +60,17 @@ public final class CellLayoutActivity extends Activity {
         try {
             CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
             cellDataMap = bundle.dataMap;
-            cellLayout.setRootCell(bundle.root);
+            root = bundle.root;
         } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
+
+        cellLayout.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                cellLayout.setRootCell(root);
+            }
+        }, 500);
     }
 
     @Override
@@ -89,45 +94,48 @@ public final class CellLayoutActivity extends Activity {
                 Log.e("CellLayoutActivity", "onCreateView: " + cell);
                 final View view;
                 if (getViewPoolId(cell) > 0) {
-                    ImageButton image = new ImageButton(CellLayoutActivity.this);
-                    image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    view = image;
+//                    ImageButton image = new ImageButton(CellLayoutActivity.this);
+//                    image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+//                    view = image;
                 } else {
-                    view = LayoutInflater.from(CellLayoutActivity.this).inflate(R.layout.item_style_0, cellLayout, false);
+//                    view = LayoutInflater.from(CellLayoutActivity.this).inflate(R.layout.item_style_0, cellLayout, false);
                 }
+                view = new View(CellLayoutActivity.this);
+                view.setBackgroundColor(getColor());
+                view.setFocusable(true);
                 view.setTag(new ViewHolder(view));
                 return view;
             }
 
             @Override
             public void onBindView(View view, Cell cell) {
-                Log.e("CellLayoutActivity", "onBindView: " + cell);
-                final long cellId = cell.getId();
-                final Bundle data = cellDataMap.get(cellId);
-                final String title = null == data ? String.valueOf(cellId) : data.getString("title");
-                final ViewHolder holder = (ViewHolder) view.getTag();
-                if (getViewPoolId(cell) > 0) {
-                    ((ImageView) holder.getContentView()).setImageResource(R.mipmap.ic_launcher);
-                } else {
-                    holder.getTextView(R.id.text1).setText(title);
-                    holder.getTextView(R.id.text2).setText(String.valueOf(cellId));
-                    holder.getImageView(R.id.image).setImageResource(R.mipmap.ic_launcher);
-                }
-                view.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Log.e("onClick", "v: " + v);
-                        Toast.makeText(v.getContext(), String.valueOf(cellId), Toast.LENGTH_SHORT).show();
-                    }
-                });
+//                Log.e("CellLayoutActivity", "onBindView: " + cell);
+//                final long cellId = cell.getId();
+//                final Bundle data = cellDataMap.get(cellId);
+//                final String title = null == data ? String.valueOf(cellId) : data.getString("title");
+//                final ViewHolder holder = (ViewHolder) view.getTag();
+//                if (getViewPoolId(cell) > 0) {
+//                    ((ImageView) holder.getContentView()).setImageResource(R.mipmap.ic_launcher);
+//                } else {
+//                    holder.getTextView(R.id.text1).setText(title);
+//                    holder.getTextView(R.id.text2).setText(String.valueOf(cellId));
+//                    holder.getImageView(R.id.image).setImageResource(R.mipmap.ic_launcher);
+//                }
+//                view.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//                        Log.e("onClick", "v: " + v);
+//                        Toast.makeText(v.getContext(), String.valueOf(cellId), Toast.LENGTH_SHORT).show();
+//                    }
+//                });
             }
 
             @Override
             public void onViewRecycled(View view, Cell cell) {
-                Log.e("CellLayoutActivity", "onViewRecycled: " + cell);
-                if (view instanceof TextView) {
-                    ((TextView) view).setTextColor(getColor());
-                }
+//                Log.e("CellLayoutActivity", "onViewRecycled: " + cell);
+//                if (view instanceof TextView) {
+//                    ((TextView) view).setTextColor(getColor());
+//                }
             }
         });
         return cellLayout;

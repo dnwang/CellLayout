@@ -26,6 +26,12 @@ import java.util.Set;
 public class CellLayout extends ViewGroup {
     private static final String TAG = "CellLayout";
 
+    public static void time(String tag, Runnable runnable) {
+        final long begin = System.currentTimeMillis();
+        runnable.run();
+        Log.e("TIME", "[" + tag + "]: " + (System.currentTimeMillis() - begin));
+    }
+
     public CellLayout(Context context) {
         super(context);
         this.init();
@@ -54,6 +60,8 @@ public class CellLayout extends ViewGroup {
 
     public void setRootCell(Cell root) {
         director.setRoot(root);
+        director.measure(getMeasuredWidth(), getMeasuredHeight());
+        director.layout(true, 0, 0,0,0);
     }
 
     public Cell findCellById(long id) {
@@ -68,43 +76,53 @@ public class CellLayout extends ViewGroup {
         moveToCenter(manager.findCellByView(view), anim);
     }
 
-    public void moveToCenter(Cell cell, boolean anim) {
-        director.scrollToCenter(cell, anim);
-    }
-
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        // don't support wrap_content
-        director.measure(getMeasuredWidth(), getMeasuredHeight());
-        // sync view
-        final int size = getChildCount();
-        for (int i = 0; i < size; i++) {
-            View view = getChildAt(i);
-            Cell cell = manager.findCellByView(view);
-            if (null != cell) {
-                view.measure(
-                        MeasureSpec.makeMeasureSpec(cell.getWidth(), MeasureSpec.EXACTLY),
-                        MeasureSpec.makeMeasureSpec(cell.getHeight(), MeasureSpec.EXACTLY)
-                );
+    public void moveToCenter(final Cell cell, final boolean anim) {
+        time("director.scrollToCenter", new Runnable() {
+            @Override
+            public void run() {
+                director.scrollToCenter(cell, anim);
             }
-        }
+        });
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        Log.e(TAG, "onLayout: " + changed);
-        director.layout(changed, l, t, r, b);
-        // sync view
-        final int size = getChildCount();
-        for (int i = 0; i < size; i++) {
-            View view = getChildAt(i);
-            Cell cell = manager.findCellByView(view);
-            if (null != cell) {
-                view.layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
-            }
-        }
+
     }
+
+    //    @Override
+//    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+//        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+//        // don't support wrap_content
+//        director.measure(getMeasuredWidth(), getMeasuredHeight());
+//        // sync view
+//        final int size = getChildCount();
+//        for (int i = 0; i < size; i++) {
+//            View view = getChildAt(i);
+//            Cell cell = manager.findCellByView(view);
+//            if (null != cell) {
+//                view.measure(
+//                        MeasureSpec.makeMeasureSpec(cell.getWidth(), MeasureSpec.EXACTLY),
+//                        MeasureSpec.makeMeasureSpec(cell.getHeight(), MeasureSpec.EXACTLY)
+//                );
+//            }
+//        }
+//    }
+//
+//    @Override
+//    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+//        Log.e(TAG, "onLayout: " + changed);
+//        director.layout(changed, l, t, r, b);
+//        // sync view
+//        final int size = getChildCount();
+//        for (int i = 0; i < size; i++) {
+//            View view = getChildAt(i);
+//            Cell cell = manager.findCellByView(view);
+//            if (null != cell) {
+//                view.layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
+//            }
+//        }
+//    }
 
     @Override
     public void scrollTo(int x, int y) {
@@ -145,21 +163,24 @@ public class CellLayout extends ViewGroup {
                 }
                 return true;// can not return superState.
             case MotionEvent.ACTION_MOVE:
-                int dx = (int) event.getX() - tmpPoint.x;
-                int dy = (int) event.getY() - tmpPoint.y;
-                int absDx = Math.abs(dx);
-                int absDy = Math.abs(dy);
-                if (isMoving || absDx > 10 || absDy > 10) {
-                    isMoving = true;
-                    int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
-                    director.scrollBy(director.findLinearGroupBy(touchCell, dir), dx, dy, false);
-                    tmpPoint.set((int) event.getX(), (int) event.getY());
-                } else {
-                    getParent().requestDisallowInterceptTouchEvent(false);
-                }
+//                int dx = (int) event.getX() - tmpPoint.x;
+//                int dy = (int) event.getY() - tmpPoint.y;
+//                int absDx = Math.abs(dx);
+//                int absDy = Math.abs(dy);
+//                if (isMoving || absDx > 10 || absDy > 10) {
+//                    isMoving = true;
+//                    int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
+//                    director.scrollBy(director.findLinearGroupBy(touchCell, dir), dx, dy, false);
+//                    tmpPoint.set((int) event.getX(), (int) event.getY());
+//                } else {
+//                    getParent().requestDisallowInterceptTouchEvent(false);
+//                }
                 return superState;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                moveToCenter(touchCell, true);
+
+
                 touchCell = null;
                 isMoving = false;
                 getParent().requestDisallowInterceptTouchEvent(false);
@@ -243,7 +264,7 @@ public class CellLayout extends ViewGroup {
         }
 
         @Override
-        public void onVisibleChanged(Cell cell) {
+        public void onVisibleChanged(final Cell cell) {
             if (cell instanceof CellGroup) {
                 // don't care group
                 return;
@@ -261,7 +282,20 @@ public class CellLayout extends ViewGroup {
                 }
                 adapter.onBindView(view, cell);
                 if (CellLayout.this != view.getParent()) {
-                    CellLayout.this.addView(view);
+//                    CellLayout.this.addView(view);
+
+                    final View newView = view;
+                    time("add", new Runnable() {
+                        @Override
+                        public void run() {
+                            CellLayout.this.addViewInLayout(newView, -1, generateDefaultLayoutParams(), true);
+                            newView.measure(
+                                    MeasureSpec.makeMeasureSpec(cell.getWidth(), MeasureSpec.EXACTLY),
+                                    MeasureSpec.makeMeasureSpec(cell.getHeight(), MeasureSpec.EXACTLY)
+                            );
+                            newView.layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
+                        }
+                    });
                 }
                 cellViewMap.put(cell, view);
             } else {
@@ -288,7 +322,7 @@ public class CellLayout extends ViewGroup {
         private void recycleView(Cell cell, ViewPool pool) {
             final View view = findViewByCell(cell);
             if (null != view) {
-                CellLayout.this.removeView(view);
+                CellLayout.this.removeViewInLayout(view);
                 cellViewMap.remove(cell);
                 adapter.onViewRecycled(view, cell);
                 if (null != pool) {

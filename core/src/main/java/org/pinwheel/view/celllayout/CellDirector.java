@@ -249,9 +249,14 @@ final class CellDirector {
         }
     }
 
-    void onCellVisibleChanged(Cell cell) {
+    void onCellVisibleChanged(final Cell cell) {
         if (null != callback) {
-            callback.onVisibleChanged(cell);
+            CellLayout.time("onCellVisibleChanged", new Runnable() {
+                @Override
+                public void run() {
+                    callback.onVisibleChanged(cell);
+                }
+            });
         }
     }
 
