@@ -156,48 +156,6 @@
                 "width": 300
               },
               {
-                "type": "grid",
-                "width": 700,
-                "row": 2,
-                "divider": 30,
-                "column": 2,
-                "cells": [
-                  {
-                    "x": 0,
-                    "y": 0,
-                    "columnCount": 1,
-                    "rowCount": 1,
-                    "data": {
-                      "title": "hhh"
-                    }
-                  },
-                  {
-                    "x": 1,
-                    "y": 0,
-                    "columnCount": 1,
-                    "rowCount": 1,
-                    "data": {
-                      "title": "rrr"
-                    }
-                  },
-                  {
-                    "x": 0,
-                    "y": 1,
-                    "columnCount": 1,
-                    "rowCount": 1
-                  },
-                  {
-                    "x": 1,
-                    "y": 1,
-                    "columnCount": 1,
-                    "rowCount": 1,
-                    "data": {
-                      "title": "mmm"
-                    }
-                  }
-                ]
-              },
-              {
                 "width": 300
               },
               {
@@ -214,6 +172,48 @@
                 "data": {
                   "title": "uuu"
                 }
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
+              },
+              {
+                "width": 300
               },
               {
                 "width": 300

@@ -110,6 +110,7 @@ final class CellDirector {
             Log.e(CellLayout.TAG, "[director.Layout] l: " + left + ", t: " + top + ", w: " + width + ", h: " + height);
             root.measure(width, height);
             root.layout(left, top);
+            //
             foreachAllCells(true, new Filter<Cell>() {
                 @Override
                 public boolean call(Cell cell) {
@@ -119,6 +120,15 @@ final class CellDirector {
                 }
             });
             onCellLayout();
+            //
+            tmp = null;
+            foreachAllCells(false, new Filter<Cell>() {
+                @Override
+                public boolean call(Cell cell) {
+                    tmp = cell;
+                    return false;
+                }
+            });
         }
     }
 

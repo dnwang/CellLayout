@@ -3,14 +3,14 @@ package org.pinwheel.demo;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.LongSparseArray;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.Window;
-import android.widget.ImageButton;
-import android.widget.ImageView;
+import android.widget.Button;
+import android.widget.TextView;
 
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
@@ -30,7 +30,7 @@ import java.io.IOException;
  * @author dnwang
  * @version 2018/11/15,11:18
  */
-public final class CellLayoutActivity extends Activity {
+public final class MainActivity extends Activity {
 
     private CellLayout cellLayout;
     private LongSparseArray<Bundle> cellDataMap;
@@ -38,15 +38,8 @@ public final class CellLayoutActivity extends Activity {
     private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
         @Override
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            if (null != oldFocus && cellLayout == oldFocus.getParent()) {
-                oldFocus.setScaleX(1f);
-                oldFocus.setScaleY(1f);
-            }
             if (null != newFocus && cellLayout == newFocus.getParent()) {
-//                cellLayout.scrollToCenter(newFocus, true);
-                newFocus.bringToFront();
-                newFocus.setScaleX(1.05f);
-                newFocus.setScaleY(1.05f);
+                cellLayout.scrollToCenter(newFocus, true);
             }
         }
     };
@@ -55,8 +48,20 @@ public final class CellLayoutActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().requestFeature(Window.FEATURE_NO_TITLE);
-        setContentView(getTestLayout());
-        cellLayout.getViewTreeObserver().addOnGlobalFocusChangeListener(focusListener);
+        setContentView(R.layout.activity_main);
+        getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener(focusListener);
+        cellLayout = findViewById(R.id.cell_layout);
+        initCellLayout();
+        loadLayout();
+    }
+
+    @Override
+    protected void onDestroy() {
+        getWindow().getDecorView().getViewTreeObserver().removeOnGlobalFocusChangeListener(focusListener);
+        super.onDestroy();
+    }
+
+    private void loadLayout() {
         try {
             CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
             cellDataMap = bundle.dataMap;
@@ -66,19 +71,10 @@ public final class CellLayoutActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        cellLayout.getViewTreeObserver().removeOnGlobalFocusChangeListener(focusListener);
-        super.onDestroy();
-    }
-
-    private CellLayout getTestLayout() {
-        cellLayout = new CellLayout(this);
-        cellLayout.setBackgroundColor(Color.BLACK);
+    private void initCellLayout() {
         cellLayout.setAdapter(new CellLayout.ViewAdapter() {
             @Override
             public View getHolderView() {
-                Log.e("Activity", "getHolderView");
                 return new View(cellLayout.getContext());
             }
 
@@ -90,33 +86,31 @@ public final class CellLayoutActivity extends Activity {
 
             @Override
             public View onCreateView(Cell cell) {
-                Log.e("Activity", "onCreateView: " + cell);
                 final View view;
                 if (getViewPoolId(cell) > 0) {
-                    ImageButton image = new ImageButton(CellLayoutActivity.this);
-                    image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    view = image;
+                    view = new Button(MainActivity.this);
                 } else {
-                    view = LayoutInflater.from(CellLayoutActivity.this).inflate(R.layout.item_style_0, cellLayout, false);
+                    view = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_style_0, cellLayout, false);
                 }
-                view.setFocusable(true);
                 view.setTag(new ViewHolder(view));
                 return view;
             }
 
             @Override
             public void onBindView(final Cell cell, View view) {
-                Log.e("Activity", "onBindView: " + cell);
                 final long cellId = cell.getId();
                 final Bundle data = cellDataMap.get(cellId);
                 final String title = null == data ? String.valueOf(cellId) : data.getString("title");
                 final ViewHolder holder = (ViewHolder) view.getTag();
                 if (getViewPoolId(cell) > 0) {
-                    ((ImageView) holder.getContentView()).setImageResource(R.mipmap.ic_launcher);
+                    TextView text = (TextView) holder.getContentView();
+                    text.setGravity(Gravity.CENTER);
+                    text.setTextColor(getColor());
+                    text.setText(title);
                 } else {
                     holder.getTextView(R.id.text1).setText(title);
                     holder.getTextView(R.id.text2).setText(String.valueOf(cellId));
-                    holder.getImageView(R.id.image).setImageResource(R.mipmap.ic_launcher);
+                    holder.getImageView(R.id.image).setImageResource(R.mipmap.jj);
                 }
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -128,10 +122,14 @@ public final class CellLayoutActivity extends Activity {
 
             @Override
             public void onViewRecycled(Cell cell, View view) {
-                Log.e("Activity", "onViewRecycled: " + cell);
+                final ViewHolder holder = (ViewHolder) view.getTag();
+                if (getViewPoolId(cell) > 0) {
+                    // nothing
+                } else {
+                    holder.getImageView(R.id.image).setImageResource(0);
+                }
             }
         });
-        return cellLayout;
     }
 
     private static int getColor() {

@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -11,6 +12,7 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -204,7 +206,7 @@ public class CellLayout extends ViewGroup {
 
     private final Point tmpPoint = new Point();
     private Cell touchCell = null;
-    private boolean isMoving = false;
+    private boolean isTouchMoving = false;
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
@@ -222,8 +224,8 @@ public class CellLayout extends ViewGroup {
                 int dy = (int) event.getY() - tmpPoint.y;
                 int absDx = Math.abs(dx);
                 int absDy = Math.abs(dy);
-                if (isMoving || absDx > 10 || absDy > 10) {
-                    isMoving = true;
+                if (isTouchMoving || absDx > 10 || absDy > 10) {
+                    isTouchMoving = true;
                     int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
                     director.moveBy(director.findLinearGroupBy(touchCell, dir), dx, dy);
                     tmpPoint.set((int) event.getX(), (int) event.getY());
@@ -234,10 +236,10 @@ public class CellLayout extends ViewGroup {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 touchCell = null;
-                if (isMoving) {
+                if (isTouchMoving) {
                     director.onMoveComplete();
                 }
-                isMoving = false;
+                isTouchMoving = false;
                 getParent().requestDisallowInterceptTouchEvent(false);
                 return superState;
             default:
@@ -250,10 +252,87 @@ public class CellLayout extends ViewGroup {
         boolean superState = super.onInterceptTouchEvent(event);
         switch (event.getAction()) {
             case MotionEvent.ACTION_MOVE:
-                return isMoving;
+                return isTouchMoving;
             default:
                 return superState;
         }
+    }
+
+    private final LongKeyPressDirector longKeyPressDirector = new LongKeyPressDirector((Activity) getContext()) {
+
+        @Override
+        public boolean interceptLongPress(int keyCode) {
+            return KeyEvent.KEYCODE_DPAD_LEFT == keyCode
+                    || KeyEvent.KEYCODE_DPAD_UP == keyCode
+                    || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+                    || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
+        }
+
+        private static final int OFFSET = 300;
+        private boolean isLongPressMoving = false;
+        private Map.Entry<Cell, View> focused = null;
+        private LinearGroup moveGroup;
+
+        private void prepareLongPress(int orientation) {
+            focused = manager.findFocusedCell();
+            if (null == focused) {
+                return;
+            }
+            isLongPressMoving = true;
+            moveGroup = director.findLinearGroupBy(focused.getKey(), orientation);
+            // clear current focus
+            focused.getValue().clearFocus();
+        }
+
+        private void releaseLongPress() {
+            isLongPressMoving = false;
+            moveGroup = null;
+            focused = null;
+            director.onMoveComplete();
+            // restore focus
+            Map.Entry<Cell, View> entry = manager.randomActiveCell();
+            if (null != entry) {
+                entry.getValue().requestFocus();
+            }
+        }
+
+        @Override
+        public boolean onLongPress(int action, int keyCode) {
+            if (KeyEvent.ACTION_DOWN == action) {
+                if (!isLongPressMoving) {
+                    prepareLongPress((KeyEvent.KEYCODE_DPAD_LEFT == keyCode || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
+                            ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL);
+                } else { // moving
+                    switch (keyCode) {
+                        case KeyEvent.KEYCODE_DPAD_LEFT:
+                            director.moveBy(moveGroup, OFFSET, 0);
+                            break;
+                        case KeyEvent.KEYCODE_DPAD_UP:
+                            director.moveBy(moveGroup, 0, OFFSET);
+                            break;
+                        case KeyEvent.KEYCODE_DPAD_RIGHT:
+                            director.moveBy(moveGroup, -OFFSET, 0);
+                            break;
+                        case KeyEvent.KEYCODE_DPAD_DOWN:
+                            director.moveBy(moveGroup, 0, -OFFSET);
+                            break;
+                    }
+                }
+            } else if (KeyEvent.ACTION_UP == action) {
+                releaseLongPress();
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onSinglePress(int keyCode) {
+            return false;
+        }
+    };
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        return longKeyPressDirector.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
     public interface ViewAdapter {
@@ -309,6 +388,20 @@ public class CellLayout extends ViewGroup {
             return activeCells.get(cell);
         }
 
+        Map.Entry<Cell, View> findFocusedCell() {
+            Set<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
+            for (Map.Entry<Cell, View> entry : entrySet) {
+                if (entry.getValue().hasFocus()) {
+                    return entry;
+                }
+            }
+            return null;
+        }
+
+        Map.Entry<Cell, View> randomActiveCell() {
+            return activeCells.entrySet().iterator().next();
+        }
+
         Cell findCellByView(View view) {
             if (null != view) {
                 Set<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
@@ -355,12 +448,14 @@ public class CellLayout extends ViewGroup {
                     layoutViewByCell(cell, contentViewCache);
                     adapter.onBindView(cell, contentViewCache);
                     activeCells.put(cell, contentViewCache);
+                    contentViewCache.setFocusable(true);
                 }
             } else {
                 // remove
                 activeCells.remove(cell);
                 final View v = findViewByCell(cell);
                 if (null != v) {
+                    v.setFocusable(false);
                     adapter.onViewRecycled(cell, v);
                     pool.release(v);
                 }
@@ -386,6 +481,7 @@ public class CellLayout extends ViewGroup {
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
                 final View holder = entry.getValue();
+                final boolean hasFocus = holder.hasFocus();
                 if (!cell.hasContentView()) {
                     View contentView = getPool(cell).acquire();
                     if (null == contentView) {
@@ -405,6 +501,10 @@ public class CellLayout extends ViewGroup {
                     // set state
                     cell.setHasContentView();
                     releaseHolder(holder);
+                    // restore focus
+                    if (hasFocus) {
+                        contentView.requestFocus();
+                    }
                 }
             }
         }
@@ -446,6 +546,7 @@ public class CellLayout extends ViewGroup {
             if (null == v) {
                 throw new IllegalStateException("Adapter.getHolderView() can't return null !");
             }
+            v.setBackgroundColor(Color.GRAY);
             if (CellLayout.this != v.getParent()) {
                 CellLayout.this.addViewInLayout(v, -1, generateDefaultLayoutParams(), true);
             }
@@ -455,7 +556,7 @@ public class CellLayout extends ViewGroup {
         private View acquireHolder() {
             if (holderCache.size() > 0) {
                 View holder = holderCache.remove(0);
-                holder.setBackgroundColor(Color.DKGRAY);
+                holder.setBackgroundColor(Color.GRAY);
                 return holder;
             } else {
                 return createHolder();
