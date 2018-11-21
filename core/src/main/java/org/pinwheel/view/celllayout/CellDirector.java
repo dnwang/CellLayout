@@ -1,9 +1,6 @@
 package org.pinwheel.view.celllayout;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.PropertyValuesHolder;
-import android.animation.ValueAnimator;
+import android.util.Log;
 
 /**
  * Copyright (C), 2018 <br>
@@ -18,6 +15,9 @@ final class CellDirector {
 
     private Cell root;
     private LifeCycleCallback callback;
+
+    private static final int FLAG_NO_LAYOUT = 1;
+    private int state = 0;
 
     boolean hasRoot() {
         return null != root;
@@ -68,57 +68,6 @@ final class CellDirector {
         }
     }
 
-    private ValueAnimator movingAnimator;
-    private final static float MOVE_SPEED = 1.5f; // px/ms
-
-    void moveToCenter(final Cell cell, final boolean withAnimation) {
-        if (null == cell) {
-            return;
-        }
-        final int centerX = root.getLeft() + root.getWidth() / 2;
-        final int centerY = root.getTop() + root.getHeight() / 2;
-        final int cellCenterX = cell.getLeft() + cell.getWidth() / 2;
-        final int cellCenterY = cell.getTop() + cell.getHeight() / 2;
-        if (!withAnimation) {
-            moveBy(findLinearGroupBy(cell, LinearGroup.VERTICAL), 0, centerY - cellCenterY);
-            moveBy(findLinearGroupBy(cell, LinearGroup.HORIZONTAL), centerX - cellCenterX, 0);
-            onMoveComplete();
-        } else {
-            final LinearGroup vLinear = findLinearGroupBy(cell, LinearGroup.VERTICAL);
-            final int dy = centerY - cellCenterY;
-            final LinearGroup hLinear = findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
-            final int dx = centerX - cellCenterX;
-            if (null != movingAnimator) {
-                movingAnimator.cancel();
-            }
-            final long duration = (long) (Math.max(Math.abs(dx), Math.abs(dy)) / MOVE_SPEED);
-            movingAnimator = ValueAnimator.ofPropertyValuesHolder(
-                    PropertyValuesHolder.ofInt("x", 0, dx),
-                    PropertyValuesHolder.ofInt("y", 0, dy)
-            ).setDuration(duration);
-            movingAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                int lastDx, lastDy;
-
-                @Override
-                public void onAnimationUpdate(ValueAnimator anim) {
-                    int dx = (int) anim.getAnimatedValue("x");
-                    int dy = (int) anim.getAnimatedValue("y");
-                    moveBy(hLinear, dx - lastDx, 0);
-                    moveBy(vLinear, 0, dy - lastDy);
-                    lastDx = dx;
-                    lastDy = dy;
-                }
-            });
-            movingAnimator.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    onMoveComplete();
-                }
-            });
-            movingAnimator.start();
-        }
-    }
-
     private final int[] diff = new int[2];
 
     void moveBy(final CellGroup group, int dx, int dy) {
@@ -152,28 +101,25 @@ final class CellDirector {
         });
     }
 
-    void measure(int width, int height) {
-        if (hasRoot()) {
+    void forceLayout() {
+        state |= FLAG_NO_LAYOUT;
+    }
+
+    void layout(int left, int top, int width, int height) {
+        if (hasRoot() && (FLAG_NO_LAYOUT == (state & FLAG_NO_LAYOUT))) {
+            Log.e(CellLayout.TAG, "[director.Layout] l: " + left + ", t: " + top + ", w: " + width + ", h: " + height);
             root.measure(width, height);
+            root.layout(left, top);
+            foreachAllCells(true, new Filter<Cell>() {
+                @Override
+                public boolean call(Cell cell) {
+                    // visible state
+                    updateVisibleState(cell, true);
+                    return false;
+                }
+            });
+            onCellLayout();
         }
-    }
-
-    void layout(int l, int t, int r, int b) {
-        if (hasRoot()) {
-            root.layout(l, t);
-        }
-    }
-
-    void refreshState(final boolean force) {
-        foreachAllCells(true, new Filter<Cell>() {
-            @Override
-            public boolean call(Cell cell) {
-                // visible state
-                updateVisibleState(cell, force);
-                return false;
-            }
-        });
-        onStateChanged();
     }
 
     private void updateVisibleState(Cell cell, boolean force) {
@@ -181,14 +127,6 @@ final class CellDirector {
         cell.setVisible(root.getLeft(), root.getTop(), root.getRight(), root.getBottom());
         if (force || oldState != cell.isVisible()) {
             onCellVisibleChanged(cell);
-        }
-    }
-
-    private void reLayout() {
-        if (hasRoot()) {
-            measure(root.getWidth(), root.getHeight());
-            layout(root.getLeft(), root.getTop(), root.getRight(), root.getBottom());
-            refreshState(true);
         }
     }
 
@@ -202,21 +140,16 @@ final class CellDirector {
         }
     }
 
-    void onStateChanged() {
+    void onMoveComplete() {
         if (null != callback) {
-            callback.onStateChanged();
+            callback.onMoveComplete();
         }
     }
 
-    void onMoveComplete() {
-        CellLayout.time("onMoveComplete", new Runnable() {
-            @Override
-            public void run() {
-                if (null != callback) {
-                    callback.onMoveComplete();
-                }
-            }
-        });
+    private void onCellLayout() {
+        if (null != callback) {
+            callback.onCellLayout();
+        }
     }
 
     private void onCellPositionChanged(Cell cell, int fromX, int fromY) {
@@ -226,19 +159,13 @@ final class CellDirector {
     }
 
     private void onCellVisibleChanged(final Cell cell) {
-        CellLayout.time("onCellVisibleChanged", new Runnable() {
-            @Override
-            public void run() {
-                if (null != callback) {
-                    callback.onVisibleChanged(cell);
-                }
-            }
-        });
-
+        if (null != callback) {
+            callback.onVisibleChanged(cell);
+        }
     }
 
     interface LifeCycleCallback {
-        void onStateChanged();
+        void onCellLayout();
 
         void onMoveComplete();
 

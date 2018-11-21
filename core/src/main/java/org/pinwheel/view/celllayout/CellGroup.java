@@ -1,5 +1,7 @@
 package org.pinwheel.view.celllayout;
 
+import android.util.LongSparseArray;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,8 @@ import java.util.List;
 public class CellGroup extends Cell implements Movable {
 
     private final List<Cell> subCells = new ArrayList<>();
+    // all cell cache
+    private final LongSparseArray<Cell> allCellCache = new LongSparseArray<>(); // contains self
 
     CellGroup() {
         super();
@@ -43,6 +47,8 @@ public class CellGroup extends Cell implements Movable {
         cell.setParent(this);
         cell.setParams(p);
         subCells.add(cell);
+        // cell changed
+        allCellCache.clear();
     }
 
     public void removeCell(Cell cell) {
@@ -54,6 +60,8 @@ public class CellGroup extends Cell implements Movable {
         }
         subCells.remove(cell);
         cell.setParent(null);
+        // cell changed
+        allCellCache.clear();
     }
 
     public Cell getCellAt(int order) {
@@ -99,30 +107,55 @@ public class CellGroup extends Cell implements Movable {
     }
 
     @Override
-    public Cell findCellById(long id) {
-        Cell target = super.findCellById(id);
-        if (null == target) {
-            for (Cell cell : subCells) {
-                if (cell.getId() == id) {
-                    target = cell;
-                    break;
-                } else if (cell instanceof CellGroup) {
-                    target = cell.findCellById(id);
-                    if (null != target) {
+    public Cell findCellById(long cellId) {
+        if (0 != allCellCache.size()) {
+            return allCellCache.get(cellId);
+        } else {
+            Cell target = super.findCellById(cellId);
+            if (null == target) {
+                for (Cell cell : subCells) {
+                    if (cell.getId() == cellId) {
+                        target = cell;
                         break;
+                    } else if (cell instanceof CellGroup) {
+                        target = cell.findCellById(cellId);
+                        if (null != target) {
+                            break;
+                        }
                     }
                 }
             }
+            return target;
         }
-        return target;
     }
 
     public final void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
-        _foreachAllCells(withGroup, this, filter);
+        if (0 != allCellCache.size()) {
+            final int size = allCellCache.size();
+            for (int i = 0; i < size; i++) {
+                Cell cell = allCellCache.valueAt(i);
+                if (cell instanceof CellGroup) {
+                    if (withGroup) {
+                        filter.call(cell);
+                    }
+                } else {
+                    filter.call(cell);
+                }
+            }
+        } else {
+            if (_foreachAllCells(withGroup, this, filter)) {
+                // has intercept, is not all cell
+                allCellCache.clear();
+            }
+        }
     }
 
     private boolean _foreachAllCells(boolean withGroup, CellGroup group, Filter<Cell> filter) {
-        boolean intercept = withGroup && filter.call(group);
+        allCellCache.put(group.getId(), group);
+        boolean intercept = false;
+        if (withGroup) {
+            intercept = filter.call(group);
+        }
         if (intercept) {
             return true;
         }
@@ -132,6 +165,7 @@ public class CellGroup extends Cell implements Movable {
             if (cell instanceof CellGroup) {
                 intercept = _foreachAllCells(withGroup, (CellGroup) cell, filter);
             } else {
+                allCellCache.put(cell.getId(), cell);
                 intercept = filter.call(cell);
             }
             if (intercept) {

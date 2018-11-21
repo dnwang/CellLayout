@@ -11,7 +11,6 @@ import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
@@ -39,15 +38,15 @@ public final class CellLayoutActivity extends Activity {
     private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
         @Override
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-//            if (null != oldFocus && cellLayout == oldFocus.getParent()) {
-//                oldFocus.setScaleX(1.0f);
-//                oldFocus.setScaleY(1.0f);
-//            }
+            if (null != oldFocus && cellLayout == oldFocus.getParent()) {
+                oldFocus.setScaleX(1f);
+                oldFocus.setScaleY(1f);
+            }
             if (null != newFocus && cellLayout == newFocus.getParent()) {
-                cellLayout.moveToCenter(newFocus, false);
-//                newFocus.bringToFront();
-//                newFocus.setScaleX(1.1f);
-//                newFocus.setScaleY(1.1f);
+//                cellLayout.scrollToCenter(newFocus, true);
+                newFocus.bringToFront();
+                newFocus.setScaleX(1.05f);
+                newFocus.setScaleY(1.05f);
             }
         }
     };
@@ -78,18 +77,9 @@ public final class CellLayoutActivity extends Activity {
         cellLayout.setBackgroundColor(Color.BLACK);
         cellLayout.setAdapter(new CellLayout.ViewAdapter() {
             @Override
-            public View getHolderView(final Cell cell) {
-                Log.e("Activity", "getHolderView: " + cell);
-                final View view = new View(CellLayoutActivity.this);
-                view.setFocusable(true);
-                view.setBackgroundColor(Color.LTGRAY);
-                view.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        cellLayout.moveToCenter(cell, false);
-                    }
-                });
-                return view;
+            public View getHolderView() {
+                Log.e("Activity", "getHolderView");
+                return new View(cellLayout.getContext());
             }
 
             @Override
@@ -131,7 +121,7 @@ public final class CellLayoutActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        cellLayout.moveToCenter(cell, false);
+                        cellLayout.scrollToCenter(v, false);
                     }
                 });
             }
@@ -139,9 +129,6 @@ public final class CellLayoutActivity extends Activity {
             @Override
             public void onViewRecycled(Cell cell, View view) {
                 Log.e("Activity", "onViewRecycled: " + cell);
-                if (view instanceof TextView) {
-                    ((TextView) view).setTextColor(getColor());
-                }
             }
         });
         return cellLayout;

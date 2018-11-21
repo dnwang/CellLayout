@@ -1,5 +1,7 @@
 package org.pinwheel.view.celllayout;
 
+import android.graphics.Rect;
+
 import java.io.Serializable;
 
 /**
@@ -13,16 +15,19 @@ import java.io.Serializable;
  */
 public class Cell implements Serializable {
 
+    private static final int FLAG_VISIBLE = 1;
+    // 0: holder view, 1: content view
+    private static final int FLAG_HAS_CONTENT_VIEW = FLAG_VISIBLE << 1;
+
     private static long ID_OFFSET = 0;
     private final long id;
+    private int state;
     //
     @Attribute
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
     //
     private int left, top;
     private int width, height;
-    //
-    private boolean isVisible;
     //
     private CellGroup parent;
     private CellGroup.Params p;
@@ -51,9 +56,13 @@ public class Cell implements Serializable {
     protected void setVisible(int l, int t, int r, int b) {
         final int right = getRight(), bottom = getBottom();
         if (r > l && b > t && right > left && bottom > top) {
-            isVisible = right >= l && bottom >= t && left <= r && top <= b;
+            if (right >= l && bottom >= t && left <= r && top <= b) {
+                state |= FLAG_VISIBLE;
+            } else {
+                state &= ~FLAG_VISIBLE;
+            }
         } else {
-            isVisible = false;
+            state &= ~FLAG_VISIBLE;
         }
     }
 
@@ -80,6 +89,10 @@ public class Cell implements Serializable {
 
     public int getBottom() {
         return top + height;
+    }
+
+    public Rect getRect() {
+        return new Rect(left, top, left + width, top + height);
     }
 
     public boolean contains(int x, int y) {
@@ -109,12 +122,26 @@ public class Cell implements Serializable {
         return parent;
     }
 
-    public final boolean isVisible() {
-        return isVisible;
-    }
-
     public Cell findCellById(long id) {
         return getId() == id ? this : null;
+    }
+
+    // --------- state
+
+    public boolean hasContentView() {
+        return FLAG_HAS_CONTENT_VIEW == (state & FLAG_HAS_CONTENT_VIEW);
+    }
+
+    public void setHasContentView() {
+        state |= FLAG_HAS_CONTENT_VIEW;
+    }
+
+    public void setHasHolderView() {
+        state &= ~FLAG_HAS_CONTENT_VIEW;
+    }
+
+    public boolean isVisible() {
+        return FLAG_VISIBLE == (state & FLAG_VISIBLE);
     }
 
     @Override

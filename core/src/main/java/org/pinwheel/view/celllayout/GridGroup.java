@@ -41,8 +41,8 @@ public class GridGroup extends CellGroup {
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
             Params p = (GridGroup.Params) cell.getParams();
-            int w = bW * p.weightX + (p.weightX - 1) * divider - (p.marginLeft + p.marginRight);
-            int h = bH * p.weightY + (p.weightY - 1) * divider - (p.marginTop + p.marginBottom);
+            int w = bW * p.columnCount + (p.columnCount - 1) * divider - (p.marginLeft + p.marginRight);
+            int h = bH * p.rowCount + (p.rowCount - 1) * divider - (p.marginTop + p.marginBottom);
             cell.measure(w, h);
         }
     }
@@ -68,18 +68,18 @@ public class GridGroup extends CellGroup {
         @Attribute
         public int x, y;
         @Attribute
-        public int weightX, weightY;
+        public int columnCount, rowCount;
 
         Params() {
             this(0, 0, 0, 0);
         }
 
-        public Params(int x, int y, int weightX, int weightY) {
+        public Params(int x, int y, int columnCount, int rowCount) {
             super(0, 0);
             this.x = x;
             this.y = y;
-            this.weightX = weightX;
-            this.weightY = weightY;
+            this.columnCount = columnCount;
+            this.rowCount = rowCount;
         }
     }
 }
