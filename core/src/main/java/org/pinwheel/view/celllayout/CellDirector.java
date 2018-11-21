@@ -68,17 +68,17 @@ final class CellDirector {
         }
     }
 
-    private final int[] diff = new int[2];
+    private final int[] offset = new int[2];
 
     void moveBy(final CellGroup group, int dx, int dy) {
         if (null == group) {
             return;
         }
-        diff[0] = dx;
-        diff[1] = dy;
-        group.scrollFix(diff);
-        final int newDx = diff[0];
-        final int newDy = diff[1];
+        offset[0] = dx;
+        offset[1] = dy;
+        group.fixScrollOffset(offset);
+        final int newDx = offset[0];
+        final int newDy = offset[1];
         if (0 == newDx && 0 == newDy) {
             return;
         }

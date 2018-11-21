@@ -10,7 +10,7 @@ package org.pinwheel.view.celllayout;
  * @version 2018/11/16,22:35
  */
 interface Movable {
-    void scrollFix(int[] diff);
+    void fixScrollOffset(int[] diff);
 
     void scrollBy(int dx, int dxy);
 
@@ -19,4 +19,12 @@ interface Movable {
     int getScrollX();
 
     int getScrollY();
+
+    // content
+
+    int getContentWidth();
+
+    int getContentHeight();
+
+    void measureContent();
 }

@@ -42,7 +42,7 @@ public class CellGroup extends Cell implements Movable {
             throw new IllegalStateException("cell must be have Params !");
         }
         if (null != cell.getParent()) {
-            throw new IllegalStateException("already has parent !");
+            throw new IllegalStateException("cell already has parent !");
         }
         cell.setParent(this);
         cell.setParams(p);
@@ -75,7 +75,7 @@ public class CellGroup extends Cell implements Movable {
     private int scrollX, scrollY;
 
     @Override
-    public void scrollFix(int[] diff) {
+    public void fixScrollOffset(int[] offset) {
     }
 
     @Override
@@ -107,6 +107,20 @@ public class CellGroup extends Cell implements Movable {
     }
 
     @Override
+    public int getContentWidth() {
+        return getWidth();
+    }
+
+    @Override
+    public int getContentHeight() {
+        return getHeight();
+    }
+
+    @Override
+    public void measureContent() {
+    }
+
+    @Override
     public Cell findCellById(long cellId) {
         if (0 != allCellCache.size()) {
             return allCellCache.get(cellId);
@@ -129,7 +143,14 @@ public class CellGroup extends Cell implements Movable {
         }
     }
 
-    public final void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
+    final void foreachSubCells(Filter<Cell> filter) {
+        final int size = subCells.size();
+        for (int i = 0; i < size; i++) {
+            filter.call(subCells.get(i));
+        }
+    }
+
+    final void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
         if (0 != allCellCache.size()) {
             final int size = allCellCache.size();
             for (int i = 0; i < size; i++) {

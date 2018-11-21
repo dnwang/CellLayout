@@ -35,6 +35,15 @@ public class LinearGroup extends CellGroup {
     }
 
     @Override
+    public void addCell(Cell cell, CellGroup.Params p) {
+        if (cell instanceof LinearGroup &&
+                ((LinearGroup) cell).getOrientation() == orientation) {
+            throw new IllegalStateException("cell has the same with parent's orientation ! maybe unboxing the group");
+        }
+        super.addCell(cell, p);
+    }
+
+    @Override
     protected void measure(int width, int height) {
         super.measure(width, height);
         final int size = getCellCount();
@@ -49,7 +58,7 @@ public class LinearGroup extends CellGroup {
                 cell.measure(w, p.height);
             }
         }
-        setContentSize();
+        measureContent();
     }
 
     @Override
@@ -84,25 +93,25 @@ public class LinearGroup extends CellGroup {
     }
 
     @Override
-    public void scrollFix(int[] diff) {
-        if (0 == diff[0] && 0 == diff[1]) {
+    public void fixScrollOffset(int[] offset) {
+        if (0 == offset[0] && 0 == offset[1]) {
             return;
         }
         // fix dx
-        int tmp = getScrollX() + diff[0];
+        int tmp = getScrollX() + offset[0];
         int max = -(contentWidth - getWidth());
         if (tmp > 0) {
-            diff[0] = -getScrollX();
+            offset[0] = -getScrollX();
         } else if (tmp < max) {
-            diff[0] = max - getScrollX();
+            offset[0] = max - getScrollX();
         }
         // fix dy
-        tmp = getScrollY() + diff[1];
+        tmp = getScrollY() + offset[1];
         max = -(contentHeight - getHeight());
         if (tmp > 0) {
-            diff[1] = -getScrollY();
+            offset[1] = -getScrollY();
         } else if (tmp < max) {
-            diff[1] = max - getScrollY();
+            offset[1] = max - getScrollY();
         }
     }
 
@@ -120,17 +129,20 @@ public class LinearGroup extends CellGroup {
         super.scrollTo(x, y);
     }
 
+    @Override
     public int getContentWidth() {
         return contentWidth;
     }
 
+    @Override
     public int getContentHeight() {
         return contentHeight;
     }
 
     private int contentWidth, contentHeight;
 
-    private void setContentSize() {
+    @Override
+    public void measureContent() {
         contentWidth = 0;
         contentHeight = 0;
         final int size = getCellCount();

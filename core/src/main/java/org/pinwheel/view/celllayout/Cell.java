@@ -122,6 +122,12 @@ public class Cell implements Serializable {
         return parent;
     }
 
+    public final void removeFromParent() {
+        if (null != parent) {
+            parent.removeCell(this);
+        }
+    }
+
     public Cell findCellById(long id) {
         return getId() == id ? this : null;
     }

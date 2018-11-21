@@ -7,8 +7,6 @@ import android.util.LongSparseArray;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewTreeObserver;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -17,6 +15,7 @@ import org.pinwheel.agility2.utils.IOUtils;
 import org.pinwheel.agility2.view.ViewHolder;
 import org.pinwheel.view.celllayout.Cell;
 import org.pinwheel.view.celllayout.CellFactory;
+import org.pinwheel.view.celllayout.CellGroup;
 import org.pinwheel.view.celllayout.CellLayout;
 
 import java.io.IOException;
@@ -35,40 +34,45 @@ public final class MainActivity extends Activity {
     private CellLayout cellLayout;
     private LongSparseArray<Bundle> cellDataMap;
 
-    private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
-        @Override
-        public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            if (null != newFocus && cellLayout == newFocus.getParent()) {
-                cellLayout.scrollToCenter(newFocus, true);
-            }
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().requestFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
-        getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener(focusListener);
         cellLayout = findViewById(R.id.cell_layout);
         initCellLayout();
         loadLayout();
     }
 
-    @Override
-    protected void onDestroy() {
-        getWindow().getDecorView().getViewTreeObserver().removeOnGlobalFocusChangeListener(focusListener);
-        super.onDestroy();
-    }
-
     private void loadLayout() {
+        Cell root = null;
         try {
-            CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
-            cellDataMap = bundle.dataMap;
-            cellLayout.setRootCell(bundle.root);
+            for (int i = 0; i < 3; i++) {
+                CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
+                if (null == root) {
+                    root = bundle.root;
+                } else {
+                    CellGroup group = (CellGroup) bundle.root;
+                    int size = group.getCellCount();
+                    while (size > 0) {
+                        Cell cell = group.getCellAt(0);
+                        cell.removeFromParent();
+                        ((CellGroup) root).addCell(cell, cell.getParams());
+                        size--;
+                    }
+                }
+                if (null == cellDataMap) {
+                    cellDataMap = bundle.dataMap;
+                } else {
+                    int size = bundle.dataMap.size();
+                    for (int j = 0; j < size; j++) {
+                        cellDataMap.put(bundle.dataMap.keyAt(j), bundle.dataMap.valueAt(j));
+                    }
+                }
+            }
         } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
+        cellLayout.setRootCell(root);
     }
 
     private void initCellLayout() {
@@ -115,7 +119,7 @@ public final class MainActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        cellLayout.scrollToCenter(v, false);
+                        cellLayout.scrollToCenter(v, true);
                     }
                 });
             }

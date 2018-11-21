@@ -1,9 +1,5 @@
 package org.pinwheel.view.celllayout;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.PropertyValuesHolder;
-import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
@@ -16,6 +12,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +46,32 @@ public class CellLayout extends ViewGroup {
         super(context, attrs, defStyleAttr);
         this.init();
     }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        getViewTreeObserver().addOnGlobalFocusChangeListener(focusListener);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        getViewTreeObserver().removeOnGlobalFocusChangeListener(focusListener);
+        super.onDetachedFromWindow();
+    }
+
+    private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
+        @Override
+        public void onGlobalFocusChanged(View oldFocus, View newFocus) {
+            oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
+            newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
+            if (null != newFocus) {
+                newFocus.bringToFront();
+            }
+            if (null != oldFocus || null != newFocus) {
+                post(new SwitchScaleAction(oldFocus, newFocus));
+            }
+        }
+    };
 
     private final CellDirector director = new CellDirector();
     private final ViewManager manager = new ViewManager();
@@ -105,13 +128,18 @@ public class CellLayout extends ViewGroup {
             Log.e(TAG, "scrollToCenter: " + (System.nanoTime() - begin) / 1000000f);
             director.onMoveComplete();
         } else {
-            autoMoving(dx, dy, new MovingAction() {
+            post(new MovingAction(dx, dy, new MovingActionCallback() {
                 @Override
-                public void call(int offsetX, int offsetY) {
+                public void move(int offsetX, int offsetY) {
                     director.moveBy(hLinear, offsetX, 0);
                     director.moveBy(vLinear, 0, offsetY);
                 }
-            });
+
+                @Override
+                public void end() {
+                    director.onMoveComplete();
+                }
+            }));
         }
     }
 
@@ -133,12 +161,17 @@ public class CellLayout extends ViewGroup {
                 director.moveBy(cell, dx, dy);
                 director.onMoveComplete();
             } else {
-                autoMoving(dx, dy, new MovingAction() {
+                post(new MovingAction(dx, dy, new MovingActionCallback() {
                     @Override
-                    public void call(int offsetX, int offsetY) {
+                    public void move(int offsetX, int offsetY) {
                         director.moveBy(cell, offsetX, offsetY);
                     }
-                });
+
+                    @Override
+                    public void end() {
+                        director.onMoveComplete();
+                    }
+                }));
             }
         }
     }
@@ -159,49 +192,80 @@ public class CellLayout extends ViewGroup {
                 director.moveBy((CellGroup) root, dx, dy);
                 director.onMoveComplete();
             } else {
-                autoMoving(dx, dy, new MovingAction() {
+                post(new MovingAction(dx, dy, new MovingActionCallback() {
                     @Override
-                    public void call(int offsetX, int offsetY) {
+                    public void move(int offsetX, int offsetY) {
                         director.moveBy(cell, offsetX, offsetY);
                     }
-                });
+
+                    @Override
+                    public void end() {
+                        director.onMoveComplete();
+                    }
+                }));
             }
         }
     }
 
-    private ValueAnimator movingAnimator;
+    private interface MovingActionCallback {
+        void move(int offsetX, int offsetY);
 
-    private void autoMoving(int dx, int dy, final MovingAction action) {
-        if (null != movingAnimator) {
-            movingAnimator.cancel();
-        }
-        movingAnimator = ValueAnimator.ofPropertyValuesHolder(
-                PropertyValuesHolder.ofInt("x", 0, dx),
-                PropertyValuesHolder.ofInt("y", 0, dy)
-        ).setDuration(200);
-        movingAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            int lastDx, lastDy;
-
-            @Override
-            public void onAnimationUpdate(ValueAnimator anim) {
-                int dx = (int) anim.getAnimatedValue("x");
-                int dy = (int) anim.getAnimatedValue("y");
-                action.call(dx - lastDx, dy - lastDy);
-                lastDx = dx;
-                lastDy = dy;
-            }
-        });
-        movingAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                director.onMoveComplete();
-            }
-        });
-        movingAnimator.start();
+        void end();
     }
 
-    private interface MovingAction {
-        void call(int offsetX, int offsetY);
+    private final class MovingAction implements Runnable {
+        int sum;
+        final int unitX, unitY;
+        final MovingActionCallback callback;
+
+        MovingAction(int dx, int dy, MovingActionCallback callback) {
+            this.callback = callback;
+            final int absDx = Math.abs(dx);
+            final int absDy = Math.abs(dy);
+            sum = Math.max(absDx, absDy) > 300 ? 6 : 4;
+            unitX = absDx > sum ? dx / sum : dx / absDx;
+            unitY = absDy > sum ? dy / sum : dy / absDy;
+        }
+
+        @Override
+        public void run() {
+            callback.move(unitX, unitY);
+            if (sum-- > 0) {
+                CellLayout.this.post(this);
+                Log.e(TAG, "[MovingAction]");
+            } else {
+                callback.end();
+            }
+        }
+    }
+
+    private final class SwitchScaleAction implements Runnable {
+        int sum = 4;
+        final float maxScale = 1.1f;
+        final float mimScale = 1f;
+        final float unit = (maxScale - mimScale) / sum;
+        final View zoomIn, zoomOut;
+
+        SwitchScaleAction(View zoomIn, View zoomOut) {
+            this.zoomIn = zoomIn;
+            this.zoomOut = zoomOut;
+        }
+
+        @Override
+        public void run() {
+            if (null != zoomIn && zoomIn.getScaleX() > mimScale) {
+                zoomIn.setScaleX(zoomIn.getScaleX() - unit);
+                zoomIn.setScaleY(zoomIn.getScaleY() - unit);
+            }
+            if (null != zoomOut && zoomOut.getScaleX() < maxScale) {
+                zoomOut.setScaleX(zoomOut.getScaleX() + unit);
+                zoomOut.setScaleY(zoomOut.getScaleY() + unit);
+            }
+            if (sum-- > 0) {
+                CellLayout.this.post(this);
+                Log.e(TAG, "[SwitchScaleAction]");
+            }
+        }
     }
 
     private final Point tmpPoint = new Point();
@@ -452,12 +516,18 @@ public class CellLayout extends ViewGroup {
                 }
             } else {
                 // remove
-                activeCells.remove(cell);
-                final View v = findViewByCell(cell);
+                final View v = activeCells.remove(cell);
                 if (null != v) {
+                    v.clearFocus();
                     v.setFocusable(false);
-                    adapter.onViewRecycled(cell, v);
-                    pool.release(v);
+                    v.setScaleX(1f);
+                    v.setScaleY(1f);
+                    if (cell.hasContentView()) {
+                        pool.release(v);
+                        adapter.onViewRecycled(cell, v);
+                    } else {
+                        releaseHolder(v);
+                    }
                 }
             }
         }
@@ -523,13 +593,13 @@ public class CellLayout extends ViewGroup {
             final int poolId = adapter.getViewPoolId(cell);
             ViewPool pool = cellPool.get(poolId);
             if (null == pool) {
-                pool = new ViewPool(5);
+                pool = new ViewPool(6);
                 cellPool.put(poolId, pool);
             }
             return pool;
         }
 
-        private static final int DEF_HOLDER_SIZE = 20;
+        private static final int DEF_HOLDER_SIZE = 10;
         private final List<View> holderCache = new ArrayList<>(DEF_HOLDER_SIZE);
 
         private void prepareHolderCache() {
@@ -565,7 +635,10 @@ public class CellLayout extends ViewGroup {
 
         private void releaseHolder(View holder) {
             holder.setBackgroundColor(Color.TRANSPARENT);
+            holder.clearFocus();
             holder.setFocusable(false);
+            holder.setScaleX(1f);
+            holder.setScaleY(1f);
             holderCache.add(holder);
         }
     }
