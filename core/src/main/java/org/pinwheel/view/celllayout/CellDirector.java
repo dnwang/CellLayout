@@ -77,7 +77,7 @@ final class CellDirector {
         if (null == group) {
             return;
         }
-        long begin = System.nanoTime();
+        final long begin = System.nanoTime();
         offset[0] = dx;
         offset[1] = dy;
         group.fixScrollOffset(offset);
@@ -113,16 +113,14 @@ final class CellDirector {
                 return false;
             }
         });
-        Log.e(CellLayout.TAG, "find cells: " + (System.nanoTime() - begin) / 1000000f + ", size: " + cells.size());
         // move
-        begin = System.nanoTime();
         for (Cell cell : cells) {
             // update visible
             updateVisibleState(cell, false);
             // move in last
             onCellPositionChanged(cell);
         }
-        Log.e(CellLayout.TAG, "apply move: " + (System.nanoTime() - begin) / 1000000f);
+        Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
     }
 
     void forceLayout() {

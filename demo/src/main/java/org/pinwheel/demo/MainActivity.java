@@ -78,12 +78,14 @@ public final class MainActivity extends Activity {
     private void initCellLayout() {
         cellLayout.setAdapter(new CellLayout.ViewAdapter() {
             @Override
-            public View getHolderView() {
-                return new View(cellLayout.getContext());
+            public View onCreateHolderView() {
+                final View holder = new View(cellLayout.getContext());
+                holder.setBackgroundColor(Color.GRAY);
+                return holder;
             }
 
             @Override
-            public int getViewPoolId(Cell cell) {
+            public int getViewType(Cell cell) {
                 final Bundle data = cellDataMap.get(cell.getId());
                 return (null == data) ? 0 : data.getInt("layoutId", 0);
             }
@@ -91,7 +93,7 @@ public final class MainActivity extends Activity {
             @Override
             public View onCreateView(Cell cell) {
                 final View view;
-                if (getViewPoolId(cell) > 0) {
+                if (getViewType(cell) > 0) {
                     view = new Button(MainActivity.this);
                 } else {
                     view = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_style_0, cellLayout, false);
@@ -106,7 +108,7 @@ public final class MainActivity extends Activity {
                 final Bundle data = cellDataMap.get(cellId);
                 final String title = null == data ? String.valueOf(cellId) : data.getString("title");
                 final ViewHolder holder = (ViewHolder) view.getTag();
-                if (getViewPoolId(cell) > 0) {
+                if (getViewType(cell) > 0) {
                     TextView text = (TextView) holder.getContentView();
                     text.setGravity(Gravity.CENTER);
                     text.setTextColor(getColor());
@@ -134,7 +136,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onViewRecycled(Cell cell, View view) {
                 final ViewHolder holder = (ViewHolder) view.getTag();
-                if (getViewPoolId(cell) > 0) {
+                if (getViewType(cell) > 0) {
                     // nothing
                 } else {
                     holder.getImageView(R.id.image).setImageResource(0);

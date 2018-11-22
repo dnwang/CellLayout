@@ -2,7 +2,7 @@ package org.pinwheel.view.celllayout;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Color;
+import android.graphics.Canvas;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -399,10 +399,19 @@ public class CellLayout extends ViewGroup {
         return longKeyPressDirector.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
-    public interface ViewAdapter {
-        View getHolderView();
+    @Override
+    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        if (manager.activeCells.containsValue(child)) {
+            return super.drawChild(canvas, child, drawingTime);
+        } else {
+            return false;
+        }
+    }
 
-        int getViewPoolId(Cell cell);
+    public interface ViewAdapter {
+        View onCreateHolderView();
+
+        int getViewType(Cell cell);
 
         View onCreateView(Cell cell);
 
@@ -416,38 +425,42 @@ public class CellLayout extends ViewGroup {
         private final SparseArray<ViewPool> poolMap = new SparseArray<>();
         private final HashMap<Cell, View> activeCells = new HashMap<>();
 
+        private static final int HOLDER_POOL_ID = Integer.MAX_VALUE;
+
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
             this.adapter = adapter;
-            //
-            prepareHolderPool();
+            // prepare holder cache first !!
+            final int size = 10;
+            final ViewPool pool = getViewPool(null);
+            if (pool.size() < size) {
+                final int count = size - pool.size();
+                for (int i = 0; i < count; i++) {
+                    pool.recycle(createHolder());
+                }
+            }
         }
 
         private void checkAndReleaseCache(boolean force) {
             if (force) { // clear all
                 removeAllViewsInLayout();
+                // clear state
                 final Set<Cell> cells = activeCells.keySet();
                 for (Cell cell : cells) {
                     cell.setHasHolderView();
                 }
+                // clear reference
                 activeCells.clear();
-                holderPool.keepSize(0, null);
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
                     poolMap.valueAt(i).keepSize(0, null);
                 }
                 poolMap.clear();
             } else { // just remove extra holder and content view
-                holderPool.keepSize(DEF_HOLDER_SIZE, new Filter<View>() {
-                    @Override
-                    public boolean call(View view) {
-                        removeViewInLayout(view);
-                        return false;
-                    }
-                });
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
-                    poolMap.valueAt(i).keepSize(DEF_POOL_SIZE, new Filter<View>() {
+                    final int targetSize = poolMap.keyAt(i) == HOLDER_POOL_ID ? 10 : 5;
+                    poolMap.valueAt(i).keepSize(targetSize, new Filter<View>() {
                         @Override
                         public boolean call(View view) {
                             removeViewInLayout(view);
@@ -504,35 +517,30 @@ public class CellLayout extends ViewGroup {
 
         @Override
         public void onVisibleChanged(final Cell cell) {
-            if (cell instanceof CellGroup) {
-                // don't care group
+            if (cell instanceof CellGroup) { // don't care group
                 return;
             }
-            final ViewPool pool = getPool(cell);
-            if (cell.isVisible()) { // add active
-                View cache = pool.acquire();
-                if (null != cache && cache.getMeasuredWidth() == cell.width() && cache.getMeasuredHeight() == cell.height()) {
-                    // just use cache when no need measure !!!
-                    Log.e(TAG, "[onVisibleChanged] use cache, poolSize: " + pool.size());
-                    cache.setVisibility(VISIBLE);
-                    layoutViewByCell(cell, cache);
-                    adapter.onBindView(cell, cache);
-                    cell.setHasContentView();
-                    cache.setFocusable(true);
-                } else {
-                    cache = acquireHolder();
-                    layoutViewByCell(cell, cache);
-                    cell.setHasHolderView();
+            final ViewPool pool = getViewPool(cell);
+            if (cell.isVisible()) { // add active view
+                final View contentCache = pool.obtain(cell, true);
+                if (null != contentCache) {
+                    Log.e(TAG, "[onVisibleChanged] use content cache !! ");
+                    bindContentToCell(cell, contentCache);
+                } else { // use holder
+                    View holderCache = getViewPool(null).obtain();
+                    if (null == holderCache) {
+                        holderCache = createHolder();
+                    }
+                    bindHolderToCell(cell, holderCache);
                 }
-                activeCells.put(cell, cache);
-            } else { // remove active
+            } else { // remove active view
                 final View v = activeCells.remove(cell);
                 if (null != v) {
                     if (cell.hasContentView()) {
-                        pool.release(v);
+                        pool.recycle(v);
                         adapter.onViewRecycled(cell, v);
-                    } else {
-                        releaseHolder(v);
+                    } else { // holder
+                        getViewPool(null).recycle(v);
                     }
                 }
             }
@@ -542,8 +550,16 @@ public class CellLayout extends ViewGroup {
             @Override
             public void run() {
                 replaceAllHolder();
-                // release should be after call replace
+                // recycle should be after call replace
                 checkAndReleaseCache(false);
+                // log manager info
+                final int size = poolMap.size();
+                Log.d(TAG, "[into] --------------");
+                for (int i = 0; i < size; i++) {
+                    Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
+                }
+                Log.d(TAG, "[into] activeCells size: " + activeCells.size());
+                Log.d(TAG, "[into] --------------");
             }
         };
 
@@ -560,36 +576,69 @@ public class CellLayout extends ViewGroup {
                 if (!cell.hasContentView()) {
                     final View holder = entry.getValue();
                     final boolean hasFocus = holder.hasFocus();
-                    releaseHolder(holder);
-                    bindContentViewByCell(cell, hasFocus);
+                    getViewPool(null).recycle(holder); // recycle holder first
+                    // create content
+                    View content = getViewPool(cell).obtain(cell, false);
+                    if (null == content) {
+                        content = createContent(cell, hasFocus);
+                    }
+                    bindContentToCell(cell, content);
+                    // restore state
+                    if (hasFocus) {
+                        content.requestFocus();
+                    }
                 }
             }
         }
 
-        private void bindContentViewByCell(Cell cell, boolean haFocus) {
-            // create
-            View contentView = getPool(cell).acquire();
-            if (null == contentView) {
-                contentView = adapter.onCreateView(cell);
-                if (null == contentView) {
-                    throw new IllegalStateException("Adapter.onCreateView() can't return null !");
-                }
-                if (CellLayout.this != contentView.getParent()) {
-                    addViewInLayout(contentView, haFocus ? -1 : 0, generateDefaultLayoutParams(), true);
-                }
+        private ViewPool getViewPool(Cell cell) {
+            final int poolId;
+            if (null == cell) {
+                poolId = HOLDER_POOL_ID;
             } else {
-                contentView.setFocusable(true);
+                poolId = adapter.getViewType(cell);
             }
-            // layout and update
-            layoutViewByCell(cell, contentView);
-            adapter.onBindView(cell, contentView);
-            // set state
+            ViewPool pool = poolMap.get(poolId);
+            if (null == pool) {
+                pool = new ViewPool();
+                poolMap.put(poolId, pool);
+            }
+            return pool;
+        }
+
+        private View createHolder() {
+            final View holder = adapter.onCreateHolderView();
+            if (null == holder) {
+                throw new IllegalStateException("Adapter.onCreateHolderView() can't return null !");
+            }
+            if (CellLayout.this != holder.getParent()) {
+                addViewInLayout(holder, 0, generateDefaultLayoutParams(), true);
+            }
+            return holder;
+        }
+
+        private void bindHolderToCell(Cell cell, View holder) {
+            layoutViewByCell(cell, holder);
+            cell.setHasHolderView();
+            activeCells.put(cell, holder);
+        }
+
+        private View createContent(Cell cell, boolean topLayer) {
+            final View content = adapter.onCreateView(cell);
+            if (null == content) {
+                throw new IllegalStateException("Adapter.onCreateView() can't return null !");
+            }
+            if (CellLayout.this != content.getParent()) {
+                addViewInLayout(content, topLayer ? -1 : 0, generateDefaultLayoutParams(), true);
+            }
+            return content;
+        }
+
+        private void bindContentToCell(Cell cell, View content) {
+            layoutViewByCell(cell, content);
+            adapter.onBindView(cell, content);
             cell.setHasContentView();
-            activeCells.put(cell, contentView);
-            // restore state
-            if (haFocus) {
-                contentView.requestFocus();
-            }
+            activeCells.put(cell, content);
         }
 
         private void layoutViewByCell(Cell cell, View v) {
@@ -599,63 +648,10 @@ public class CellLayout extends ViewGroup {
             }
             v.layout(cell.left, cell.top, cell.right, cell.bottom);
         }
-
-        private ViewPool getPool(Cell cell) {
-            final int poolId = adapter.getViewPoolId(cell);
-            ViewPool pool = poolMap.get(poolId);
-            if (null == pool) {
-                pool = new ViewPool();
-                poolMap.put(poolId, pool);
-            }
-            return pool;
-        }
-
-        private static final int DEF_HOLDER_SIZE = 10;
-        private static final int DEF_POOL_SIZE = 5;
-
-        private final ViewPool holderPool = new ViewPool();
-
-        private void prepareHolderPool() {
-            if (holderPool.size() < DEF_HOLDER_SIZE) {
-                int size = DEF_HOLDER_SIZE - holderPool.size();
-                for (int i = 0; i < size; i++) {
-                    releaseHolder(createHolder());
-                }
-            }
-        }
-
-        private View createHolder() {
-            final View v = adapter.getHolderView();
-            if (null == v) {
-                throw new IllegalStateException("Adapter.getHolderView() can't return null !");
-            }
-            if (CellLayout.this != v.getParent()) {
-                addViewInLayout(v, 0, generateDefaultLayoutParams(), true);
-            }
-            Log.e(TAG, "[createHolder] poolSize: " + holderPool.size());
-            return v;
-        }
-
-        private View acquireHolder() {
-            View holder = holderPool.acquire();
-            if (null != holder) {
-                // restore state
-                holder.setFocusable(true);
-                holder.setBackgroundColor(Color.DKGRAY);
-                return holder;
-            } else {
-                return createHolder();
-            }
-        }
-
-        private void releaseHolder(View holder) {
-            holder.setBackground(null); // skip draw
-            holderPool.release(holder);
-        }
     }
 
     private static final class ViewPool {
-        final List<View> caches;
+        private final List<View> caches;
 
         ViewPool() {
             caches = new ArrayList<>();
@@ -665,11 +661,35 @@ public class CellLayout extends ViewGroup {
             return caches.size();
         }
 
-        View acquire() {
-            return caches.size() > 0 ? caches.remove(0) : null;
+        View obtain() {
+            return obtain(null, false);
         }
 
-        void release(final View view) {
+        View obtain(Cell cell, boolean force) {
+            if (caches.isEmpty()) {
+                return null;
+            }
+            View view = null;
+            if (null != cell) {
+                for (View v : caches) {
+                    if (v.getMeasuredWidth() == cell.width() && v.getMeasuredHeight() == cell.height()) {
+                        view = v;
+                        break;
+                    }
+                }
+            }
+            if (null != view) {
+                caches.remove(view);
+            } else if (!force) {
+                view = caches.remove(0);
+            }
+            if (null != view) {
+                view.setFocusable(true);
+            }
+            return view;
+        }
+
+        void recycle(final View view) {
             if (caches.contains(view)) {
                 throw new IllegalStateException("Already in the pool!");
             }
