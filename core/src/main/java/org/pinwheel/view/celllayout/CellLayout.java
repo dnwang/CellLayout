@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -121,10 +120,8 @@ public class CellLayout extends ViewGroup {
         final LinearGroup vLinear = director.findLinearGroupBy(cell, LinearGroup.VERTICAL);
         final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
-            final long begin = System.nanoTime();
             director.moveBy(vLinear, 0, dy);
             director.moveBy(hLinear, dx, 0);
-            Log.d(TAG, "[scrollToCenter] time: " + (System.nanoTime() - begin) / 1000000f);
             director.onMoveComplete();
         } else {
             post(new MovingAction(dx, dy, new MovingActionCallback() {
@@ -144,8 +141,8 @@ public class CellLayout extends ViewGroup {
 
     @Override
     public void scrollTo(int x, int y) {
-        super.scrollTo(x, y);
-//        scrollTo(x, y, false);
+//        super.scrollTo(x, y);
+        scrollTo(x, y, false);
     }
 
     public void scrollTo(int x, int y, boolean withAnimation) {
@@ -155,8 +152,8 @@ public class CellLayout extends ViewGroup {
         final Cell root = director.getRoot();
         if (root instanceof CellGroup) {
             final CellGroup cell = (CellGroup) root;
-            int dx = x - (cell.left + cell.getScrollX());
-            int dy = y - (cell.top + cell.getScrollY());
+            int dx = x - (cell.left + cell.scrollX);
+            int dy = y - (cell.top + cell.scrollY);
             if (!withAnimation) {
                 director.moveBy(cell, dx, dy);
                 director.onMoveComplete();
@@ -346,8 +343,8 @@ public class CellLayout extends ViewGroup {
             setFocusable(true);
             requestFocus();
             final View v = focused.getValue();
-            v.setScaleX(0);
-            v.setScaleY(0);
+            v.setScaleX(1);
+            v.setScaleY(1);
         }
 
         private void releaseLongPress() {
@@ -513,24 +510,22 @@ public class CellLayout extends ViewGroup {
             }
             final ViewPool pool = getPool(cell);
             if (cell.isVisible()) { // add active
-                View v = pool.acquire();
-                if (null != v) { // use content cache
-//                    Log.e(TAG, "[onVisibleChanged] use cache, poolSize: " + pool.size());
-                    long begin = System.nanoTime();
-                    layoutViewByCell(cell, v);
-                    adapter.onBindView(cell, v);
-                    Log.e(CellLayout.TAG, "content layout: "+(System.nanoTime()-begin)/1000000f );
+                View cache = pool.acquire();
+                if (null != cache && cache.getMeasuredWidth() == cell.width() && cache.getMeasuredHeight() == cell.height()) {
+                    // just use cache when no need measure !!!
+                    Log.e(TAG, "[onVisibleChanged] use cache, poolSize: " + pool.size());
+                    cache.setVisibility(VISIBLE);
+                    layoutViewByCell(cell, cache);
+                    adapter.onBindView(cell, cache);
                     cell.setHasContentView();
+                    cache.setFocusable(true);
                 } else {
-                    v = acquireHolder();
-                    long begin = System.nanoTime();
-                    layoutViewByCell(cell, v);
-                    Log.e(CellLayout.TAG, "holder layout: "+(System.nanoTime()-begin)/1000000f );
+                    cache = acquireHolder();
+                    layoutViewByCell(cell, cache);
                     cell.setHasHolderView();
                 }
-                activeCells.put(cell, v);
+                activeCells.put(cell, cache);
             } else { // remove active
-                long begin = System.nanoTime();
                 final View v = activeCells.remove(cell);
                 if (null != v) {
                     if (cell.hasContentView()) {
@@ -540,7 +535,6 @@ public class CellLayout extends ViewGroup {
                         releaseHolder(v);
                     }
                 }
-                Log.e(CellLayout.TAG, "remove: "+(System.nanoTime()-begin)/1000000f );
             }
         }
 
@@ -583,6 +577,8 @@ public class CellLayout extends ViewGroup {
                 if (CellLayout.this != contentView.getParent()) {
                     addViewInLayout(contentView, haFocus ? -1 : 0, generateDefaultLayoutParams(), true);
                 }
+            } else {
+                contentView.setFocusable(true);
             }
             // layout and update
             layoutViewByCell(cell, contentView);
@@ -590,16 +586,16 @@ public class CellLayout extends ViewGroup {
             // set state
             cell.setHasContentView();
             activeCells.put(cell, contentView);
-            // restore focus
+            // restore state
             if (haFocus) {
                 contentView.requestFocus();
             }
         }
 
         private void layoutViewByCell(Cell cell, View v) {
-            if (v.getMeasuredWidth() != cell.getMeasureWidth() || v.getMeasuredHeight() != cell.getMeasureHeight()) {
-                v.measure(MeasureSpec.makeMeasureSpec(cell.getMeasureWidth(), MeasureSpec.EXACTLY),
-                        MeasureSpec.makeMeasureSpec(cell.getMeasureHeight(), MeasureSpec.EXACTLY));
+            if (v.getMeasuredWidth() != cell.width() || v.getMeasuredHeight() != cell.height()) {
+                v.measure(MeasureSpec.makeMeasureSpec(cell.width(), MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(cell.height(), MeasureSpec.EXACTLY));
             }
             v.layout(cell.left, cell.top, cell.right, cell.bottom);
         }
@@ -643,7 +639,8 @@ public class CellLayout extends ViewGroup {
         private View acquireHolder() {
             View holder = holderPool.acquire();
             if (null != holder) {
-                // restore holder style
+                // restore state
+                holder.setFocusable(true);
                 holder.setBackgroundColor(Color.DKGRAY);
                 return holder;
             } else {
@@ -661,7 +658,7 @@ public class CellLayout extends ViewGroup {
         final List<View> caches;
 
         ViewPool() {
-            caches = new ArrayList<>(10);
+            caches = new ArrayList<>();
         }
 
         int size() {
@@ -669,13 +666,7 @@ public class CellLayout extends ViewGroup {
         }
 
         View acquire() {
-            if (caches.size() > 0) {
-                final View view = caches.remove(0);
-                view.setFocusable(true);
-                return view;
-            } else {
-                return null;
-            }
+            return caches.size() > 0 ? caches.remove(0) : null;
         }
 
         void release(final View view) {

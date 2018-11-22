@@ -45,11 +45,13 @@ public class Cell extends Rect implements Serializable {
         bottom = top + measureHeight;
     }
 
-    public final int getMeasureWidth() {
+    @Override
+    public int width() {
         return measureWidth;
     }
 
-    public final int getMeasureHeight() {
+    @Override
+    public int height() {
         return measureHeight;
     }
 
@@ -61,13 +63,9 @@ public class Cell extends Rect implements Serializable {
         this.parent = parent;
     }
 
-    protected final void setVisible(int l, int t, int r, int b) {
-        if (r > l && b > t && right > left && bottom > top) {
-            if (right >= l && bottom >= t && left <= r && top <= b) {
-                state |= FLAG_VISIBLE;
-            } else {
-                state &= ~FLAG_VISIBLE;
-            }
+    protected final void setVisible(Rect referenceArea) {
+        if (Rect.intersects(referenceArea, this)) {
+            state |= FLAG_VISIBLE;
         } else {
             state &= ~FLAG_VISIBLE;
         }
@@ -115,10 +113,6 @@ public class Cell extends Rect implements Serializable {
 
     public final Rect getRect() {
         return Rect.copy(this);
-    }
-
-    public final android.graphics.Rect convert() {
-        return new android.graphics.Rect(left, top, right, bottom);
     }
 
     @Override

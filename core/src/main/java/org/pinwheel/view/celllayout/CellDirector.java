@@ -77,6 +77,7 @@ final class CellDirector {
         if (null == group) {
             return;
         }
+        long begin = System.nanoTime();
         offset[0] = dx;
         offset[1] = dy;
         group.fixScrollOffset(offset);
@@ -86,31 +87,17 @@ final class CellDirector {
             return;
         }
         group.scrollBy(newDx, newDy);
-        long begin = System.nanoTime();
-//        group.foreachAllCells(true, new Filter<Cell>() {
-//            @Override
-//            public boolean call(Cell cell) {
-//                if (cell == group) {
-//                    // don't scroll self
-//                    return false;
-//                }
-//                cell.offset(newDx, newDy);
-//                onCellPositionChanged(cell);
-//                // check visible
-//                updateVisibleState(cell, false);
-//                return false;
-//            }
-//        });
-//        Log.e(CellLayout.TAG, "old : " + (System.nanoTime() - begin) / 1000000f);
-
-        // ---------------------------------------------
-
-        begin = System.nanoTime();
-        final Rect changeArea = group.getRect();
-        if (dy > 0) {
-            changeArea.top -= Math.abs(dy);
-        } else {
-            changeArea.bottom += Math.abs(dy);
+        // find change area
+        final Rect changeArea = root.getRect(); // copy new
+        if (newDx > 0) {
+            changeArea.left -= newDx;
+        } else if (0 != newDx) {
+            changeArea.right -= newDx;
+        }
+        if (newDy > 0) {
+            changeArea.top -= newDy;
+        } else if (0 != newDy) {
+            changeArea.bottom -= newDy;
         }
         final Set<Cell> cells = new HashSet<>();
         group.foreachAllCells(true, new Filter<Cell>() {
@@ -126,14 +113,16 @@ final class CellDirector {
                 return false;
             }
         });
-        Log.e(CellLayout.TAG, "find rect cells: " + (System.nanoTime() - begin) / 1000000f);
+        Log.e(CellLayout.TAG, "find cells: " + (System.nanoTime() - begin) / 1000000f + ", size: " + cells.size());
+        // move
         begin = System.nanoTime();
         for (Cell cell : cells) {
-            onCellPositionChanged(cell);
-            // check visible
+            // update visible
             updateVisibleState(cell, false);
+            // move in last
+            onCellPositionChanged(cell);
         }
-        Log.e(CellLayout.TAG, "apply: " + (System.nanoTime() - begin) / 1000000f);
+        Log.e(CellLayout.TAG, "apply move: " + (System.nanoTime() - begin) / 1000000f);
     }
 
     void forceLayout() {
@@ -160,7 +149,7 @@ final class CellDirector {
 
     private void updateVisibleState(Cell cell, boolean force) {
         final boolean oldState = cell.isVisible();
-        cell.setVisible(root.left, root.top, root.right, root.bottom);
+        cell.setVisible(root);
         if (force || oldState != cell.isVisible()) {
             onCellVisibleChanged(cell);
         }

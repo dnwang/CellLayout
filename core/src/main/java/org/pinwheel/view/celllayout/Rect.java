@@ -39,15 +39,15 @@ class Rect {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(32);
-        sb.append("Rect(");
+        sb.append("[");
         sb.append(left);
         sb.append(", ");
         sb.append(top);
-        sb.append(" - ");
+        sb.append(", ");
         sb.append(right);
         sb.append(", ");
         sb.append(bottom);
-        sb.append(")");
+        sb.append("]");
         return sb.toString();
     }
 
@@ -104,7 +104,7 @@ class Rect {
      * @return the rectangle's width. This does not check for a valid rectangle
      * (i.e. left <= right) so the result may be negative.
      */
-    public final int width() {
+    public int width() {
         return right - left;
     }
 
@@ -112,7 +112,7 @@ class Rect {
      * @return the rectangle's height. This does not check for a valid rectangle
      * (i.e. top <= bottom) so the result may be negative.
      */
-    public final int height() {
+    public int height() {
         return bottom - top;
     }
 

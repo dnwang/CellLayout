@@ -50,8 +50,8 @@ public class GridGroup extends CellGroup {
     @Override
     protected void layout(int x, int y) {
         super.layout(x, y);
-        final int bW = (int) ((getMeasureWidth() - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
-        final int bH = (int) ((getMeasureHeight() - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
+        final int bW = (int) ((width() - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
+        final int bH = (int) ((height() - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);

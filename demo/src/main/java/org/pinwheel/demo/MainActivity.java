@@ -119,7 +119,7 @@ public final class MainActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        cellLayout.scrollToCenter(v, false);
+                        cellLayout.scrollToCenter(v, true);
                     }
                 });
                 view.setOnLongClickListener(new View.OnLongClickListener() {

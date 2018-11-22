@@ -72,7 +72,7 @@ public class CellGroup extends Cell implements Movable {
         return subCells.size();
     }
 
-    private int scrollX, scrollY;
+    int scrollX, scrollY;
 
     @Override
     public void fixScrollOffset(int[] offset) {
@@ -89,7 +89,7 @@ public class CellGroup extends Cell implements Movable {
 
     @Override
     public void scrollTo(int x, int y) {
-        int l = left + getScrollX(), t = top + getScrollY();
+        int l = left + scrollX, t = top + scrollY;
         if (l == x && t == y) {
             return;
         }
@@ -108,12 +108,12 @@ public class CellGroup extends Cell implements Movable {
 
     @Override
     public int getContentWidth() {
-        return getMeasureWidth();
+        return width();
     }
 
     @Override
     public int getContentHeight() {
-        return getMeasureHeight();
+        return height();
     }
 
     @Override

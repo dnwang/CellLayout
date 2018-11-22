@@ -78,12 +78,12 @@ public class LinearGroup extends CellGroup {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginLeft;
                 cell.layout(tmp, top + paddingTop + p.marginTop);
-                tmp += (cell.getMeasureWidth() + p.marginRight);
+                tmp += (cell.width() + p.marginRight);
             } else {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginTop;
                 cell.layout(left + paddingLeft + p.marginLeft, tmp);
-                tmp += (cell.getMeasureHeight() + p.marginBottom);
+                tmp += (cell.height() + p.marginBottom);
             }
         }
     }
@@ -98,20 +98,20 @@ public class LinearGroup extends CellGroup {
             return;
         }
         // fix dx
-        int tmp = getScrollX() + offset[0];
-        int max = -(contentWidth - getMeasureWidth());
+        int tmp = scrollX + offset[0];
+        int max = -(contentWidth - width());
         if (tmp > 0) {
-            offset[0] = -getScrollX();
+            offset[0] = -scrollX;
         } else if (tmp < max) {
-            offset[0] = max - getScrollX();
+            offset[0] = max - scrollX;
         }
         // fix dy
-        tmp = getScrollY() + offset[1];
-        max = -(contentHeight - getMeasureHeight());
+        tmp = scrollY + offset[1];
+        max = -(contentHeight - height());
         if (tmp > 0) {
-            offset[1] = -getScrollY();
+            offset[1] = -scrollY;
         } else if (tmp < max) {
-            offset[1] = max - getScrollY();
+            offset[1] = max - scrollY;
         }
     }
 
@@ -148,14 +148,14 @@ public class LinearGroup extends CellGroup {
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
-            contentWidth += cell.getMeasureWidth();
-            contentHeight += cell.getMeasureHeight();
+            contentWidth += cell.width();
+            contentHeight += cell.height();
         }
         if (HORIZONTAL == orientation) {
             contentWidth += paddingLeft + paddingRight + Math.max(0, size - 1) * divider;
-            contentHeight = getMeasureHeight();
+            contentHeight = height();
         } else {
-            contentWidth = getMeasureWidth();
+            contentWidth = width();
             contentHeight += paddingTop + paddingBottom + Math.max(0, size - 1) * divider;
         }
     }
