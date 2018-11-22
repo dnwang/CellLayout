@@ -96,7 +96,7 @@ public class Cell extends Rect implements Serializable {
     // --------- state
 
     public final boolean hasContentView() {
-        return FLAG_HAS_CONTENT_VIEW == (state & FLAG_HAS_CONTENT_VIEW);
+        return (state & FLAG_HAS_CONTENT_VIEW) != 0;
     }
 
     public final void setHasContentView() {
@@ -108,7 +108,7 @@ public class Cell extends Rect implements Serializable {
     }
 
     public final boolean isVisible() {
-        return FLAG_VISIBLE == (state & FLAG_VISIBLE);
+        return (state & FLAG_VISIBLE) != 0;
     }
 
     public final Rect getRect() {

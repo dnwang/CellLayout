@@ -128,8 +128,9 @@ final class CellDirector {
     }
 
     void layout(int left, int top, int width, int height) {
-        if (hasRoot() && (FLAG_NO_LAYOUT == (state & FLAG_NO_LAYOUT))) {
+        if (hasRoot() && (state & FLAG_NO_LAYOUT) != 0) {
             Log.e(CellLayout.TAG, "[director.Layout] l: " + left + ", t: " + top + ", w: " + width + ", h: " + height);
+            state &= ~FLAG_NO_LAYOUT; // clear flag
             root.measure(width, height);
             root.layout(left, top);
             //

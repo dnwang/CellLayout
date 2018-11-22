@@ -3,6 +3,8 @@ package org.pinwheel.view.celllayout;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -63,9 +65,6 @@ public class CellLayout extends ViewGroup {
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
             oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
             newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
-            if (null != newFocus && indexOfChild(newFocus) < getChildCount() - 1) {
-                newFocus.bringToFront();
-            }
             if (null != oldFocus || null != newFocus) {
                 post(new SwitchScaleAction(oldFocus, newFocus));
             }
@@ -76,6 +75,8 @@ public class CellLayout extends ViewGroup {
     private final ViewManager manager = new ViewManager();
 
     private void init() {
+        setWillNotDraw(false);
+        setChildrenDrawingOrderEnabled(true);
         director.setCallback(manager);
     }
 
@@ -399,6 +400,30 @@ public class CellLayout extends ViewGroup {
         return longKeyPressDirector.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
+    private Paint focusP = new Paint();
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        //
+    }
+
+    @Override
+    public void onDrawForeground(Canvas canvas) {
+        Log.e(TAG, "onDraw: ");
+        if (null != touchCell) {
+            focusP.setStyle(Paint.Style.STROKE);
+            focusP.setStrokeWidth(2);
+            focusP.setColor(Color.RED);
+            canvas.drawRect(touchCell.left - 10, touchCell.top - 10, touchCell.right + 10, touchCell.bottom + 10, focusP);
+        }
+    }
+
+    @Override
+    protected int getChildDrawingOrder(int childCount, int i) {
+        Log.e(TAG, "getChildDrawingOrder: childCount: " + childCount + ", i: " + i);
+        return i;
+    }
+
     @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         if (manager.activeCells.containsValue(child)) {
@@ -580,7 +605,7 @@ public class CellLayout extends ViewGroup {
                     // create content
                     View content = getViewPool(cell).obtain(cell, false);
                     if (null == content) {
-                        content = createContent(cell, hasFocus);
+                        content = createContent(cell);
                     }
                     bindContentToCell(cell, content);
                     // restore state
@@ -612,7 +637,7 @@ public class CellLayout extends ViewGroup {
                 throw new IllegalStateException("Adapter.onCreateHolderView() can't return null !");
             }
             if (CellLayout.this != holder.getParent()) {
-                addViewInLayout(holder, 0, generateDefaultLayoutParams(), true);
+                addViewInLayout(holder, -1, generateDefaultLayoutParams(), true);
             }
             return holder;
         }
@@ -623,13 +648,13 @@ public class CellLayout extends ViewGroup {
             activeCells.put(cell, holder);
         }
 
-        private View createContent(Cell cell, boolean topLayer) {
+        private View createContent(Cell cell) {
             final View content = adapter.onCreateView(cell);
             if (null == content) {
                 throw new IllegalStateException("Adapter.onCreateView() can't return null !");
             }
             if (CellLayout.this != content.getParent()) {
-                addViewInLayout(content, topLayer ? -1 : 0, generateDefaultLayoutParams(), true);
+                addViewInLayout(content, -1, generateDefaultLayoutParams(), true);
             }
             return content;
         }
