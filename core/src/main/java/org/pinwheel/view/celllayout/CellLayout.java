@@ -64,7 +64,7 @@ public class CellLayout extends ViewGroup {
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
             oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
             newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
-            if (null != newFocus) {
+            if (null != newFocus && indexOfChild(newFocus) < getChildCount() - 1) {
                 newFocus.bringToFront();
             }
             if (null != oldFocus || null != newFocus) {
@@ -125,7 +125,7 @@ public class CellLayout extends ViewGroup {
             final long begin = System.nanoTime();
             director.moveBy(vLinear, 0, dy);
             director.moveBy(hLinear, dx, 0);
-            Log.e(TAG, "scrollToCenter: " + (System.nanoTime() - begin) / 1000000f);
+            Log.d(TAG, "[scrollToCenter] time: " + (System.nanoTime() - begin) / 1000000f);
             director.onMoveComplete();
         } else {
             post(new MovingAction(dx, dy, new MovingActionCallback() {
@@ -223,16 +223,15 @@ public class CellLayout extends ViewGroup {
             final int absDx = Math.abs(dx);
             final int absDy = Math.abs(dy);
             sum = Math.max(absDx, absDy) > 300 ? 6 : 4;
-            unitX = absDx > sum ? dx / sum : dx / absDx;
-            unitY = absDy > sum ? dy / sum : dy / absDy;
+            unitX = absDx > sum ? (dx / sum) : (0 != dx ? (dx / absDx) : 0);
+            unitY = absDy > sum ? (dy / sum) : (0 != dy ? (dy / absDy) : 0);
         }
 
         @Override
         public void run() {
             callback.move(unitX, unitY);
             if (sum-- > 0) {
-                CellLayout.this.post(this);
-                Log.e(TAG, "[MovingAction]");
+                post(this);
             } else {
                 callback.end();
             }
@@ -262,8 +261,7 @@ public class CellLayout extends ViewGroup {
                 zoomOut.setScaleY(zoomOut.getScaleY() + unit);
             }
             if (sum-- > 0) {
-                CellLayout.this.post(this);
-                Log.e(TAG, "[SwitchScaleAction]");
+                post(this);
             }
         }
     }
@@ -413,38 +411,48 @@ public class CellLayout extends ViewGroup {
 
     private final class ViewManager implements CellDirector.LifeCycleCallback {
         private ViewAdapter adapter;
-        private final SparseArray<ViewPool> cellPool = new SparseArray<>();
+        private final SparseArray<ViewPool> poolMap = new SparseArray<>();
         private final HashMap<Cell, View> activeCells = new HashMap<>();
 
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
             this.adapter = adapter;
             //
-            prepareHolderCache();
+            prepareHolderPool();
         }
 
         private void checkAndReleaseCache(boolean force) {
             if (force) { // clear all
-                CellLayout.this.removeAllViewsInLayout();
-                holderCache.clear();
+                removeAllViewsInLayout();
+                final Set<Cell> cells = activeCells.keySet();
+                for (Cell cell : cells) {
+                    cell.setHasHolderView();
+                }
                 activeCells.clear();
-                final int size = cellPool.size();
+                holderPool.keepSize(0, null);
+                final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
-                    cellPool.get(i).clear();
+                    poolMap.valueAt(i).keepSize(0, null);
                 }
-                cellPool.clear();
-            } else {
-                // remove extra holder
-                int size = holderCache.size() - DEF_HOLDER_SIZE;
+                poolMap.clear();
+            } else { // just remove extra holder and content view
+                holderPool.keepSize(DEF_HOLDER_SIZE, new Filter<View>() {
+                    @Override
+                    public boolean call(View view) {
+                        removeViewInLayout(view);
+                        return false;
+                    }
+                });
+                final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
-                    View holder = holderCache.remove(0);
-                    CellLayout.this.removeViewInLayout(holder);
+                    poolMap.valueAt(i).keepSize(DEF_POOL_SIZE, new Filter<View>() {
+                        @Override
+                        public boolean call(View view) {
+                            removeViewInLayout(view);
+                            return false;
+                        }
+                    });
                 }
-                // remove content view cache
-//                size = cellPool.size();
-//                for (int i = 0; i < size; i++) {
-//                    CellLayout.this.removeViewInLayout(cellPool.get(i).acquire());
-//                }
             }
         }
 
@@ -499,29 +507,22 @@ public class CellLayout extends ViewGroup {
                 return;
             }
             final ViewPool pool = getPool(cell);
-            if (cell.isVisible()) {
-                final View contentViewCache = pool.acquire();
-                if (null == contentViewCache) {
-                    final View holder = acquireHolder();
-                    cell.setHasHolderView();
-                    layoutViewByCell(cell, holder);
-                    activeCells.put(cell, holder);
-                    holder.setFocusable(true);
-                } else {
+            if (cell.isVisible()) { // add active
+                View v = pool.acquire();
+                if (null != v) { // use content cache
+                    Log.e(TAG, "[onVisibleChanged] use cache, poolSize: " + pool.size());
+                    layoutViewByCell(cell, v);
+                    adapter.onBindView(cell, v);
                     cell.setHasContentView();
-                    layoutViewByCell(cell, contentViewCache);
-                    adapter.onBindView(cell, contentViewCache);
-                    activeCells.put(cell, contentViewCache);
-                    contentViewCache.setFocusable(true);
+                } else {
+                    v = acquireHolder();
+                    layoutViewByCell(cell, v);
+                    cell.setHasHolderView();
                 }
-            } else {
-                // remove
+                activeCells.put(cell, v);
+            } else { // remove active
                 final View v = activeCells.remove(cell);
                 if (null != v) {
-                    v.clearFocus();
-                    v.setFocusable(false);
-                    v.setScaleX(1f);
-                    v.setScaleY(1f);
                     if (cell.hasContentView()) {
                         pool.release(v);
                         adapter.onViewRecycled(cell, v);
@@ -536,77 +537,82 @@ public class CellLayout extends ViewGroup {
             @Override
             public void run() {
                 replaceAllHolder();
+                // release should be after call replace
                 checkAndReleaseCache(false);
             }
         };
 
         @Override
         public void onMoveComplete() {
-            CellLayout.this.removeCallbacks(scheduleAction);
-            CellLayout.this.postDelayed(scheduleAction, 10);
+            removeCallbacks(scheduleAction);
+            postDelayed(scheduleAction, 10);
         }
 
         private void replaceAllHolder() {
             final Set<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
-                final View holder = entry.getValue();
-                final boolean hasFocus = holder.hasFocus();
                 if (!cell.hasContentView()) {
-                    View contentView = getPool(cell).acquire();
-                    if (null == contentView) {
-                        contentView = adapter.onCreateView(cell);
-                        if (null == contentView) {
-                            throw new IllegalStateException("Adapter.onCreateView() can't return null !");
-                        }
-                        if (CellLayout.this != contentView.getParent()) {
-                            CellLayout.this.addViewInLayout(contentView, -1, generateDefaultLayoutParams(), true);
-                        }
-                    }
-                    // layout content view
-                    layoutViewByCell(cell, contentView);
-                    // upgrade view
-                    adapter.onBindView(cell, contentView);
-                    activeCells.put(cell, contentView);
-                    // set state
-                    cell.setHasContentView();
+                    final View holder = entry.getValue();
+                    final boolean hasFocus = holder.hasFocus();
                     releaseHolder(holder);
-                    // restore focus
-                    if (hasFocus) {
-                        contentView.requestFocus();
-                    }
+                    bindContentViewByCell(cell, hasFocus);
                 }
+            }
+        }
+
+        private void bindContentViewByCell(Cell cell, boolean haFocus) {
+            // create
+            View contentView = getPool(cell).acquire();
+            if (null == contentView) {
+                contentView = adapter.onCreateView(cell);
+                if (null == contentView) {
+                    throw new IllegalStateException("Adapter.onCreateView() can't return null !");
+                }
+                if (CellLayout.this != contentView.getParent()) {
+                    addViewInLayout(contentView, haFocus ? -1 : 0, generateDefaultLayoutParams(), true);
+                }
+            }
+            // layout and update
+            layoutViewByCell(cell, contentView);
+            adapter.onBindView(cell, contentView);
+            // set state
+            cell.setHasContentView();
+            activeCells.put(cell, contentView);
+            // restore focus
+            if (haFocus) {
+                contentView.requestFocus();
             }
         }
 
         private void layoutViewByCell(Cell cell, View v) {
             if (v.getMeasuredWidth() != cell.getWidth() || v.getMeasuredHeight() != cell.getHeight()) {
-                v.measure(
-                        MeasureSpec.makeMeasureSpec(cell.getWidth(), MeasureSpec.EXACTLY),
-                        MeasureSpec.makeMeasureSpec(cell.getHeight(), MeasureSpec.EXACTLY)
-                );
+                v.measure(MeasureSpec.makeMeasureSpec(cell.getWidth(), MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(cell.getHeight(), MeasureSpec.EXACTLY));
             }
             v.layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
         }
 
         private ViewPool getPool(Cell cell) {
             final int poolId = adapter.getViewPoolId(cell);
-            ViewPool pool = cellPool.get(poolId);
+            ViewPool pool = poolMap.get(poolId);
             if (null == pool) {
-                pool = new ViewPool(6);
-                cellPool.put(poolId, pool);
+                pool = new ViewPool();
+                poolMap.put(poolId, pool);
             }
             return pool;
         }
 
         private static final int DEF_HOLDER_SIZE = 10;
-        private final List<View> holderCache = new ArrayList<>(DEF_HOLDER_SIZE);
+        private static final int DEF_POOL_SIZE = 5;
 
-        private void prepareHolderCache() {
-            if (holderCache.size() < DEF_HOLDER_SIZE) {
-                int size = DEF_HOLDER_SIZE - holderCache.size();
+        private final ViewPool holderPool = new ViewPool();
+
+        private void prepareHolderPool() {
+            if (holderPool.size() < DEF_HOLDER_SIZE) {
+                int size = DEF_HOLDER_SIZE - holderPool.size();
                 for (int i = 0; i < size; i++) {
-                    holderCache.add(createHolder());
+                    releaseHolder(createHolder());
                 }
             }
         }
@@ -616,17 +622,18 @@ public class CellLayout extends ViewGroup {
             if (null == v) {
                 throw new IllegalStateException("Adapter.getHolderView() can't return null !");
             }
-            v.setBackgroundColor(Color.GRAY);
             if (CellLayout.this != v.getParent()) {
-                CellLayout.this.addViewInLayout(v, -1, generateDefaultLayoutParams(), true);
+                addViewInLayout(v, 0, generateDefaultLayoutParams(), true);
             }
+            Log.e(TAG, "[createHolder] poolSize: " + holderPool.size());
             return v;
         }
 
         private View acquireHolder() {
-            if (holderCache.size() > 0) {
-                View holder = holderCache.remove(0);
-                holder.setBackgroundColor(Color.GRAY);
+            View holder = holderPool.acquire();
+            if (null != holder) {
+                // restore holder style
+                holder.setBackgroundColor(Color.DKGRAY);
                 return holder;
             } else {
                 return createHolder();
@@ -634,59 +641,51 @@ public class CellLayout extends ViewGroup {
         }
 
         private void releaseHolder(View holder) {
-            holder.setBackgroundColor(Color.TRANSPARENT);
-            holder.clearFocus();
-            holder.setFocusable(false);
-            holder.setScaleX(1f);
-            holder.setScaleY(1f);
-            holderCache.add(holder);
+            holder.setBackground(null); // skip draw
+            holderPool.release(holder);
         }
     }
 
     private static final class ViewPool {
-        private final View[] caches;
-        private int maxSize;
+        final List<View> caches;
 
-        ViewPool(int maxPoolSize) {
-            if (maxPoolSize <= 0) {
-                throw new IllegalArgumentException("The max pool size must be > 0");
-            }
-            caches = new View[maxPoolSize];
+        ViewPool() {
+            caches = new ArrayList<>(10);
+        }
+
+        int size() {
+            return caches.size();
         }
 
         View acquire() {
-            if (maxSize > 0) {
-                final int lastPooledIndex = maxSize - 1;
-                View instance = caches[lastPooledIndex];
-                caches[lastPooledIndex] = null;
-                maxSize--;
-                return instance;
+            if (caches.size() > 0) {
+                final View view = caches.remove(0);
+                view.setFocusable(true);
+                return view;
+            } else {
+                return null;
             }
-            return null;
         }
 
-        void release(View instance) {
-            if (isInPool(instance)) {
+        void release(final View view) {
+            if (caches.contains(view)) {
                 throw new IllegalStateException("Already in the pool!");
             }
-            if (maxSize < caches.length) {
-                caches[maxSize] = instance;
-                maxSize++;
-            }
+            view.clearFocus();
+            view.setFocusable(false);
+            view.setScaleX(1f);
+            view.setScaleY(1f);
+            caches.add(view);
         }
 
-        private boolean isInPool(View instance) {
-            for (int i = 0; i < maxSize; i++) {
-                if (caches[i] == instance) {
-                    return true;
+        void keepSize(int size, Filter<View> filter) {
+            size = size < 0 ? 0 : size;
+            final int count = caches.size() - size;
+            for (int i = 0; i < count; i++) {
+                View v = caches.remove(0);
+                if (null != filter) {
+                    filter.call(v);
                 }
-            }
-            return false;
-        }
-
-        private void clear() {
-            for (int i = 0; i < maxSize; i++) {
-                caches[i] = null;
             }
         }
     }
