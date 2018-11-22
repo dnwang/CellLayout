@@ -119,7 +119,14 @@ public final class MainActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        cellLayout.scrollToCenter(v, true);
+                        cellLayout.scrollToCenter(v, false);
+                    }
+                });
+                view.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        cellLayout.scrollToCenter(v, false);
+                        return true;
                     }
                 });
             }
@@ -137,11 +144,9 @@ public final class MainActivity extends Activity {
     }
 
     private static int getColor() {
-        return Color.rgb(
+        return Color.rgb((int) (Math.random() * 255),
                 (int) (Math.random() * 255),
-                (int) (Math.random() * 255),
-                (int) (Math.random() * 255)
-        );
+                (int) (Math.random() * 255));
     }
 
 }

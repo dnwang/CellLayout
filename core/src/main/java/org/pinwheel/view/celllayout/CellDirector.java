@@ -2,6 +2,9 @@ package org.pinwheel.view.celllayout;
 
 import android.util.Log;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -83,22 +86,54 @@ final class CellDirector {
             return;
         }
         group.scrollBy(newDx, newDy);
+        long begin = System.nanoTime();
+//        group.foreachAllCells(true, new Filter<Cell>() {
+//            @Override
+//            public boolean call(Cell cell) {
+//                if (cell == group) {
+//                    // don't scroll self
+//                    return false;
+//                }
+//                cell.offset(newDx, newDy);
+//                onCellPositionChanged(cell);
+//                // check visible
+//                updateVisibleState(cell, false);
+//                return false;
+//            }
+//        });
+//        Log.e(CellLayout.TAG, "old : " + (System.nanoTime() - begin) / 1000000f);
+
+        // ---------------------------------------------
+
+        begin = System.nanoTime();
+        final Rect changeArea = group.getRect();
+        if (dy > 0) {
+            changeArea.top -= Math.abs(dy);
+        } else {
+            changeArea.bottom += Math.abs(dy);
+        }
+        final Set<Cell> cells = new HashSet<>();
         group.foreachAllCells(true, new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
-                if (cell == group) {
-                    // don't scroll self
+                if (cell == group) {// don't move self
                     return false;
                 }
-                int fromX = cell.getLeft();
-                int fromY = cell.getTop();
-                cell.offset(newDx, newDy);
-                onCellPositionChanged(cell, fromX, fromY);
-                // check visible
-                updateVisibleState(cell, false);
+                if (Rect.intersects(changeArea, cell)) {
+                    cells.add(cell);
+                }
+                cell.offset(newDx, newDy);// after compare
                 return false;
             }
         });
+        Log.e(CellLayout.TAG, "find rect cells: " + (System.nanoTime() - begin) / 1000000f);
+        begin = System.nanoTime();
+        for (Cell cell : cells) {
+            onCellPositionChanged(cell);
+            // check visible
+            updateVisibleState(cell, false);
+        }
+        Log.e(CellLayout.TAG, "apply: " + (System.nanoTime() - begin) / 1000000f);
     }
 
     void forceLayout() {
@@ -120,21 +155,12 @@ final class CellDirector {
                 }
             });
             onCellLayout();
-            //
-            tmp = null;
-            foreachAllCells(false, new Filter<Cell>() {
-                @Override
-                public boolean call(Cell cell) {
-                    tmp = cell;
-                    return false;
-                }
-            });
         }
     }
 
     private void updateVisibleState(Cell cell, boolean force) {
         final boolean oldState = cell.isVisible();
-        cell.setVisible(root.getLeft(), root.getTop(), root.getRight(), root.getBottom());
+        cell.setVisible(root.left, root.top, root.right, root.bottom);
         if (force || oldState != cell.isVisible()) {
             onCellVisibleChanged(cell);
         }
@@ -162,9 +188,9 @@ final class CellDirector {
         }
     }
 
-    private void onCellPositionChanged(Cell cell, int fromX, int fromY) {
+    private void onCellPositionChanged(Cell cell) {
         if (null != callback) {
-            callback.onPositionChanged(cell, fromX, fromY);
+            callback.onPositionChanged(cell);
         }
     }
 
@@ -179,7 +205,7 @@ final class CellDirector {
 
         void onMoveComplete();
 
-        void onPositionChanged(Cell cell, int fromX, int fromY);
+        void onPositionChanged(Cell cell);
 
         void onVisibleChanged(Cell cell);
     }

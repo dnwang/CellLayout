@@ -33,10 +33,10 @@ public class GridGroup extends CellGroup {
     }
 
     @Override
-    protected void measure(int width, int height) {
+    protected void measure(final int width, final int height) {
         super.measure(width, height);
-        final int bW = (int) ((getWidth() - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
-        final int bH = (int) ((getHeight() - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
+        final int bW = (int) ((width - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
+        final int bH = (int) ((height - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
@@ -50,17 +50,17 @@ public class GridGroup extends CellGroup {
     @Override
     protected void layout(int x, int y) {
         super.layout(x, y);
-        final int bW = (int) ((getWidth() - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
-        final int bH = (int) ((getHeight() - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
+        final int bW = (int) ((getMeasureWidth() - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
+        final int bH = (int) ((getMeasureHeight() - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
             Params p = (GridGroup.Params) cell.getParams();
-            int left = getLeft() + paddingLeft + p.marginLeft;
-            left += p.x * (divider + bW);
-            int top = getTop() + paddingTop + p.marginTop;
-            top += p.y * (divider + bH);
-            cell.layout(left, top);
+            int l = left + paddingLeft + p.marginLeft;
+            l += p.x * (divider + bW);
+            int t = top + paddingTop + p.marginTop;
+            t += p.y * (divider + bH);
+            cell.layout(l, t);
         }
     }
 

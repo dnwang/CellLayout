@@ -115,10 +115,9 @@ public class CellLayout extends ViewGroup {
         if (!director.hasRoot() || null == cell) {
             return;
         }
-        final Rect rootRect = director.getRoot().getRect();
-        final Rect cellRect = cell.getRect();
-        final int dx = rootRect.centerX() - cellRect.centerX();
-        final int dy = rootRect.centerY() - cellRect.centerY();
+        final Cell rootRect = director.getRoot();
+        final int dx = rootRect.centerX() - cell.centerX();
+        final int dy = rootRect.centerY() - cell.centerY();
         final LinearGroup vLinear = director.findLinearGroupBy(cell, LinearGroup.VERTICAL);
         final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
@@ -145,7 +144,8 @@ public class CellLayout extends ViewGroup {
 
     @Override
     public void scrollTo(int x, int y) {
-        scrollTo(x, y, false);
+        super.scrollTo(x, y);
+//        scrollTo(x, y, false);
     }
 
     public void scrollTo(int x, int y, boolean withAnimation) {
@@ -155,8 +155,8 @@ public class CellLayout extends ViewGroup {
         final Cell root = director.getRoot();
         if (root instanceof CellGroup) {
             final CellGroup cell = (CellGroup) root;
-            int dx = x - (cell.getLeft() + cell.getScrollX());
-            int dy = y - (cell.getTop() + cell.getScrollY());
+            int dx = x - (cell.left + cell.getScrollX());
+            int dy = y - (cell.top + cell.getScrollY());
             if (!withAnimation) {
                 director.moveBy(cell, dx, dy);
                 director.onMoveComplete();
@@ -288,7 +288,7 @@ public class CellLayout extends ViewGroup {
                 int absDy = Math.abs(dy);
                 if (isTouchMoving || absDx > 10 || absDy > 10) {
                     isTouchMoving = true;
-                    int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
+                    final int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
                     director.moveBy(director.findLinearGroupBy(touchCell, dir), dx, dy);
                     tmpPoint.set((int) event.getX(), (int) event.getY());
                 } else {
@@ -342,8 +342,12 @@ public class CellLayout extends ViewGroup {
             }
             isLongPressMoving = true;
             moveGroup = director.findLinearGroupBy(focused.getKey(), orientation);
-            // clear current focus
-            focused.getValue().clearFocus();
+            // switch focus to root
+            setFocusable(true);
+            requestFocus();
+            final View v = focused.getValue();
+            v.setScaleX(0);
+            v.setScaleY(0);
         }
 
         private void releaseLongPress() {
@@ -355,6 +359,7 @@ public class CellLayout extends ViewGroup {
             Map.Entry<Cell, View> entry = manager.randomActiveCell();
             if (null != entry) {
                 entry.getValue().requestFocus();
+                setFocusable(false);
             }
         }
 
@@ -492,11 +497,11 @@ public class CellLayout extends ViewGroup {
         }
 
         @Override
-        public void onPositionChanged(Cell cell, int fromX, int fromY) {
+        public void onPositionChanged(Cell cell) {
             final View view = findViewByCell(cell);
             if (null != view) {
-                view.offsetLeftAndRight(cell.getLeft() - fromX);
-                view.offsetTopAndBottom(cell.getTop() - fromY);
+                view.offsetLeftAndRight(cell.left - view.getLeft());
+                view.offsetTopAndBottom(cell.top - view.getTop());
             }
         }
 
@@ -510,17 +515,22 @@ public class CellLayout extends ViewGroup {
             if (cell.isVisible()) { // add active
                 View v = pool.acquire();
                 if (null != v) { // use content cache
-                    Log.e(TAG, "[onVisibleChanged] use cache, poolSize: " + pool.size());
+//                    Log.e(TAG, "[onVisibleChanged] use cache, poolSize: " + pool.size());
+                    long begin = System.nanoTime();
                     layoutViewByCell(cell, v);
                     adapter.onBindView(cell, v);
+                    Log.e(CellLayout.TAG, "content layout: "+(System.nanoTime()-begin)/1000000f );
                     cell.setHasContentView();
                 } else {
                     v = acquireHolder();
+                    long begin = System.nanoTime();
                     layoutViewByCell(cell, v);
+                    Log.e(CellLayout.TAG, "holder layout: "+(System.nanoTime()-begin)/1000000f );
                     cell.setHasHolderView();
                 }
                 activeCells.put(cell, v);
             } else { // remove active
+                long begin = System.nanoTime();
                 final View v = activeCells.remove(cell);
                 if (null != v) {
                     if (cell.hasContentView()) {
@@ -530,6 +540,7 @@ public class CellLayout extends ViewGroup {
                         releaseHolder(v);
                     }
                 }
+                Log.e(CellLayout.TAG, "remove: "+(System.nanoTime()-begin)/1000000f );
             }
         }
 
@@ -586,11 +597,11 @@ public class CellLayout extends ViewGroup {
         }
 
         private void layoutViewByCell(Cell cell, View v) {
-            if (v.getMeasuredWidth() != cell.getWidth() || v.getMeasuredHeight() != cell.getHeight()) {
-                v.measure(MeasureSpec.makeMeasureSpec(cell.getWidth(), MeasureSpec.EXACTLY),
-                        MeasureSpec.makeMeasureSpec(cell.getHeight(), MeasureSpec.EXACTLY));
+            if (v.getMeasuredWidth() != cell.getMeasureWidth() || v.getMeasuredHeight() != cell.getMeasureHeight()) {
+                v.measure(MeasureSpec.makeMeasureSpec(cell.getMeasureWidth(), MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(cell.getMeasureHeight(), MeasureSpec.EXACTLY));
             }
-            v.layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
+            v.layout(cell.left, cell.top, cell.right, cell.bottom);
         }
 
         private ViewPool getPool(Cell cell) {

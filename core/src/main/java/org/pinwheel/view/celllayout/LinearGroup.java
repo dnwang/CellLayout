@@ -44,7 +44,7 @@ public class LinearGroup extends CellGroup {
     }
 
     @Override
-    protected void measure(int width, int height) {
+    protected void measure(final int width, final int height) {
         super.measure(width, height);
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
@@ -66,9 +66,9 @@ public class LinearGroup extends CellGroup {
         super.layout(x, y);
         int tmp;
         if (HORIZONTAL == orientation) {
-            tmp = getLeft() + paddingLeft;
+            tmp = left + paddingLeft;
         } else {
-            tmp = getTop() + paddingTop;
+            tmp = top + paddingTop;
         }
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
@@ -77,13 +77,13 @@ public class LinearGroup extends CellGroup {
             if (HORIZONTAL == orientation) {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginLeft;
-                cell.layout(tmp, getTop() + paddingTop + p.marginTop);
-                tmp += (cell.getWidth() + p.marginRight);
+                cell.layout(tmp, top + paddingTop + p.marginTop);
+                tmp += (cell.getMeasureWidth() + p.marginRight);
             } else {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginTop;
-                cell.layout(getLeft() + paddingLeft + p.marginLeft, tmp);
-                tmp += (cell.getHeight() + p.marginBottom);
+                cell.layout(left + paddingLeft + p.marginLeft, tmp);
+                tmp += (cell.getMeasureHeight() + p.marginBottom);
             }
         }
     }
@@ -99,7 +99,7 @@ public class LinearGroup extends CellGroup {
         }
         // fix dx
         int tmp = getScrollX() + offset[0];
-        int max = -(contentWidth - getWidth());
+        int max = -(contentWidth - getMeasureWidth());
         if (tmp > 0) {
             offset[0] = -getScrollX();
         } else if (tmp < max) {
@@ -107,7 +107,7 @@ public class LinearGroup extends CellGroup {
         }
         // fix dy
         tmp = getScrollY() + offset[1];
-        max = -(contentHeight - getHeight());
+        max = -(contentHeight - getMeasureHeight());
         if (tmp > 0) {
             offset[1] = -getScrollY();
         } else if (tmp < max) {
@@ -124,8 +124,8 @@ public class LinearGroup extends CellGroup {
 
     @Override
     public void scrollTo(int x, int y) {
-        y = HORIZONTAL == orientation ? getTop() : y;
-        x = HORIZONTAL != orientation ? getLeft() : x;
+        y = HORIZONTAL == orientation ? top : y;
+        x = HORIZONTAL != orientation ? left : x;
         super.scrollTo(x, y);
     }
 
@@ -148,14 +148,14 @@ public class LinearGroup extends CellGroup {
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
-            contentWidth += cell.getWidth();
-            contentHeight += cell.getHeight();
+            contentWidth += cell.getMeasureWidth();
+            contentHeight += cell.getMeasureHeight();
         }
         if (HORIZONTAL == orientation) {
             contentWidth += paddingLeft + paddingRight + Math.max(0, size - 1) * divider;
-            contentHeight = getHeight();
+            contentHeight = getMeasureHeight();
         } else {
-            contentWidth = getWidth();
+            contentWidth = getMeasureWidth();
             contentHeight += paddingTop + paddingBottom + Math.max(0, size - 1) * divider;
         }
     }

@@ -89,11 +89,11 @@ public class CellGroup extends Cell implements Movable {
 
     @Override
     public void scrollTo(int x, int y) {
-        int left = getLeft() + getScrollX(), top = getTop() + getScrollY();
-        if (left == x && top == y) {
+        int l = left + getScrollX(), t = top + getScrollY();
+        if (l == x && t == y) {
             return;
         }
-        scrollBy(x - left, y - top);
+        scrollBy(x - l, y - t);
     }
 
     @Override
@@ -108,12 +108,12 @@ public class CellGroup extends Cell implements Movable {
 
     @Override
     public int getContentWidth() {
-        return getWidth();
+        return getMeasureWidth();
     }
 
     @Override
     public int getContentHeight() {
-        return getHeight();
+        return getMeasureHeight();
     }
 
     @Override
