@@ -124,8 +124,6 @@ final class CellDirector {
         for (Cell cell : cells) {
             // update visible
             updateVisibleState(cell, false);
-            // move in last
-            onCellPositionChanged(cell);
         }
         view.invalidate();
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
@@ -192,12 +190,6 @@ final class CellDirector {
         }
     }
 
-    private void onCellPositionChanged(Cell cell) {
-        if (null != callback) {
-            callback.onPositionChanged(cell);
-        }
-    }
-
     private void onCellVisibleChanged(final Cell cell) {
         if (null != callback) {
             callback.onVisibleChanged(cell);
@@ -207,11 +199,9 @@ final class CellDirector {
     interface LifeCycleCallback {
         void onCellLayout();
 
-        void onMoveComplete();
-
-        void onPositionChanged(Cell cell);
-
         void onVisibleChanged(Cell cell);
+
+        void onMoveComplete();
     }
 
 }

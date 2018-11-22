@@ -401,12 +401,20 @@ public class CellLayout extends ViewGroup {
     private Paint focusP = new Paint();
 
     @Override
-    public void draw(Canvas canvas) {
-        super.draw(canvas);
+    public void onDraw(Canvas canvas) {
     }
 
     @Override
     public void onDrawForeground(Canvas canvas) {
+        // draw holder
+        final Collection<Cell> cells = manager.activeCells.keySet();
+        for (Cell cell : cells) {
+            if (!cell.hasContentView()) {
+                holderPaint.setColor(Color.DKGRAY);
+                canvas.drawRect(cell.left, cell.top, cell.right, cell.bottom, holderPaint);
+            }
+        }
+        // draw focus
         if (null != touchCell) {
             focusP.setStyle(Paint.Style.STROKE);
             focusP.setStrokeWidth(8);
@@ -418,27 +426,30 @@ public class CellLayout extends ViewGroup {
     @Override
     protected int getChildDrawingOrder(int childCount, int i) {
         Log.e(TAG, "getChildDrawingOrder: childCount: " + childCount + ", i: " + i);
+        // TODO: 2018/11/23
         return i;
     }
 
+    private Paint holderPaint = new Paint();
+
     @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-        Cell cell = manager.findCellByView(child);
+        final Cell cell = manager.findCellByView(child);
         if (null != cell) {
-//            canvas.save();
-//            canvas.translate(cell.left, cell.top);
-//            child.draw(canvas);
-//            canvas.restore();
-//            return true;
-            return super.drawChild(canvas, child, drawingTime);
+            // first draw in target position, layout it on move complete!
+            canvas.save();
+            canvas.translate(cell.left, cell.top);
+            child.draw(canvas);
+            canvas.restore();
+            return true;
+            // super method will be draw child by layout position
+            // return super.drawChild(canvas, child, drawingTime);
         } else {
             return false;
         }
     }
 
     public interface ViewAdapter {
-        View onCreateHolderView();
-
         int getViewType(Cell cell);
 
         View onCreateView(Cell cell);
@@ -453,33 +464,9 @@ public class CellLayout extends ViewGroup {
         private final SparseArray<ViewPool> poolMap = new SparseArray<>();
         private final HashMap<Cell, View> activeCells = new HashMap<>();
 
-        private static final int HOLDER_POOL_ID = Integer.MAX_VALUE;
-
-        void drawCells(Canvas canvas) {
-            final long begin = System.nanoTime();
-            Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
-            for (Map.Entry<Cell, View> entry : entries) {
-                final Cell cell = entry.getKey();
-                canvas.save();
-                canvas.translate(cell.left, cell.top);
-                entry.getValue().draw(canvas);
-                canvas.restore();
-            }
-            Log.e(TAG, "[drawCells] " + (System.nanoTime() - begin) / 1000000f);
-        }
-
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
             this.adapter = adapter;
-            // prepare holder cache first !!
-            final int size = 10;
-            final ViewPool pool = getViewPool(null);
-            if (pool.size() < size) {
-                final int count = size - pool.size();
-                for (int i = 0; i < count; i++) {
-                    pool.recycle(createHolder());
-                }
-            }
         }
 
         private void checkAndReleaseCache(boolean force) {
@@ -500,8 +487,7 @@ public class CellLayout extends ViewGroup {
             } else { // just remove extra holder and content view
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
-                    final int targetSize = poolMap.keyAt(i) == HOLDER_POOL_ID ? 10 : 5;
-                    poolMap.valueAt(i).keepSize(targetSize, new Filter<View>() {
+                    poolMap.valueAt(i).keepSize(5, new Filter<View>() {
                         @Override
                         public boolean call(View view) {
                             removeViewInLayout(view);
@@ -547,15 +533,7 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onCellLayout() {
             replaceAllHolder();
-        }
-
-        @Override
-        public void onPositionChanged(Cell cell) {
-            final View view = findViewByCell(cell);
-            if (null != view) {
-                view.offsetLeftAndRight(cell.left - view.getLeft());
-                view.offsetTopAndBottom(cell.top - view.getTop());
-            }
+            layoutAllContent();
         }
 
         @Override
@@ -565,26 +543,20 @@ public class CellLayout extends ViewGroup {
             }
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
-                final View contentCache = pool.obtain(cell, true);
-                if (null != contentCache) {
+                final View cache = pool.obtain(cell, true);
+                if (null != cache) {
                     Log.e(TAG, "[onVisibleChanged] use content cache !! ");
-                    bindContentToCell(cell, contentCache);
-                } else { // use holder
-                    View holderCache = getViewPool(null).obtain();
-                    if (null == holderCache) {
-                        holderCache = createHolder();
-                    }
-                    bindHolderToCell(cell, holderCache);
+                    bindContentToCell(cell, cache);
+                } else { // holder
+                    cell.setHasHolderView();
+                    activeCells.put(cell, null);
                 }
             } else { // remove active view
                 final View v = activeCells.remove(cell);
-                if (null != v) {
-                    if (cell.hasContentView()) {
-                        pool.recycle(v);
-                        adapter.onViewRecycled(cell, v);
-                    } else { // holder
-                        getViewPool(null).recycle(v);
-                    }
+                if (cell.hasContentView()) {
+                    cell.setHasHolderView();
+                    pool.recycle(v);
+                    adapter.onViewRecycled(cell, v);
                 }
             }
         }
@@ -592,7 +564,8 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onMoveComplete() {
             replaceAllHolder();
-            // recycle should be after call replace
+            layoutAllContent();
+            // recycle should be in last
             checkAndReleaseCache(false);
             // log manager info
             final int size = poolMap.size();
@@ -609,30 +582,18 @@ public class CellLayout extends ViewGroup {
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
                 if (!cell.hasContentView()) {
-                    final View holder = entry.getValue();
-                    final boolean hasFocus = holder.hasFocus();
-                    getViewPool(null).recycle(holder); // recycle holder first
                     // create content
                     View content = getViewPool(cell).obtain(cell, false);
                     if (null == content) {
                         content = createContent(cell);
                     }
                     bindContentToCell(cell, content);
-                    // restore state
-                    if (hasFocus) {
-                        content.requestFocus();
-                    }
                 }
             }
         }
 
         private ViewPool getViewPool(Cell cell) {
-            final int poolId;
-            if (null == cell) {
-                poolId = HOLDER_POOL_ID;
-            } else {
-                poolId = adapter.getViewType(cell);
-            }
+            final int poolId = adapter.getViewType(cell);
             ViewPool pool = poolMap.get(poolId);
             if (null == pool) {
                 pool = new ViewPool();
@@ -641,47 +602,33 @@ public class CellLayout extends ViewGroup {
             return pool;
         }
 
-        private View createHolder() {
-            final View holder = adapter.onCreateHolderView();
-            if (null == holder) {
-                throw new IllegalStateException("Adapter.onCreateHolderView() can't return null !");
-            }
-            if (CellLayout.this != holder.getParent()) {
-                addViewInLayout(holder, -1, generateDefaultLayoutParams(), true);
-            }
-            return holder;
-        }
-
-        private void bindHolderToCell(Cell cell, View holder) {
-            layoutViewByCell(cell, holder);
-            cell.setHasHolderView();
-            activeCells.put(cell, holder);
-        }
-
         private View createContent(Cell cell) {
-            final View content = adapter.onCreateView(cell);
-            if (null == content) {
+            final View v = adapter.onCreateView(cell);
+            if (null == v) {
                 throw new IllegalStateException("Adapter.onCreateView() can't return null !");
             }
-            if (CellLayout.this != content.getParent()) {
-                addViewInLayout(content, -1, generateDefaultLayoutParams(), true);
+            if (CellLayout.this != v.getParent()) {
+                addViewInLayout(v, -1, generateDefaultLayoutParams(), true);
             }
-            return content;
+            return v;
         }
 
-        private void bindContentToCell(Cell cell, View content) {
-            layoutViewByCell(cell, content);
-            adapter.onBindView(cell, content);
-            cell.setHasContentView();
-            activeCells.put(cell, content);
-        }
-
-        private void layoutViewByCell(Cell cell, View v) {
+        private void bindContentToCell(Cell cell, View v) {
             if (v.getMeasuredWidth() != cell.width() || v.getMeasuredHeight() != cell.height()) {
                 v.measure(MeasureSpec.makeMeasureSpec(cell.width(), MeasureSpec.EXACTLY),
                         MeasureSpec.makeMeasureSpec(cell.height(), MeasureSpec.EXACTLY));
             }
-            v.layout(cell.left, cell.top, cell.right, cell.bottom);
+            adapter.onBindView(cell, v);
+            cell.setHasContentView();
+            activeCells.put(cell, v);
+        }
+
+        private void layoutAllContent() {
+            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
+            for (Map.Entry<Cell, View> entry : entrySet) {
+                final Cell cell = entry.getKey();
+                entry.getValue().layout(cell.left, cell.top, cell.right, cell.bottom);
+            }
         }
     }
 

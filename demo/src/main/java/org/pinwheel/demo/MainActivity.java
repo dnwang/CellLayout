@@ -78,13 +78,6 @@ public final class MainActivity extends Activity {
     private void initCellLayout() {
         cellLayout.setAdapter(new CellLayout.ViewAdapter() {
             @Override
-            public View onCreateHolderView() {
-                final View holder = new View(cellLayout.getContext());
-                holder.setBackgroundColor(Color.GRAY);
-                return holder;
-            }
-
-            @Override
             public int getViewType(Cell cell) {
                 final Bundle data = cellDataMap.get(cell.getId());
                 return (null == data) ? 0 : data.getInt("layoutId", 0);
