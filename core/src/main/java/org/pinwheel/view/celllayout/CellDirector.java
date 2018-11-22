@@ -1,6 +1,7 @@
 package org.pinwheel.view.celllayout;
 
 import android.util.Log;
+import android.view.View;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -21,6 +22,12 @@ final class CellDirector {
 
     private static final int FLAG_NO_LAYOUT = 1;
     private int state = 0;
+
+    private View view;
+
+    CellDirector(View view) {
+        this.view = view;
+    }
 
     boolean hasRoot() {
         return null != root;
@@ -120,6 +127,7 @@ final class CellDirector {
             // move in last
             onCellPositionChanged(cell);
         }
+        view.invalidate();
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
     }
 
@@ -164,10 +172,18 @@ final class CellDirector {
         }
     }
 
-    void onMoveComplete() {
-        if (null != callback) {
-            callback.onMoveComplete();
+    private Runnable scheduleAction = new Runnable() {
+        @Override
+        public void run() {
+            if (null != callback) {
+                callback.onMoveComplete();
+            }
         }
+    };
+
+    void onMoveComplete() {
+        view.removeCallbacks(scheduleAction);
+        view.postDelayed(scheduleAction, 10);
     }
 
     private void onCellLayout() {

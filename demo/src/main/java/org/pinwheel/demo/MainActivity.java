@@ -96,7 +96,7 @@ public final class MainActivity extends Activity {
                 if (getViewType(cell) > 0) {
                     view = new Button(MainActivity.this);
                 } else {
-                    view = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_style_0, cellLayout, false);
+                    view = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_style_0, null);
                 }
                 view.setTag(new ViewHolder(view));
                 return view;

@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.LongSparseArray;
 import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -17,7 +18,6 @@ import android.view.ViewTreeObserver;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,20 +30,20 @@ import java.util.Map;
  * @author dnwang
  * @version 2018/11/15,11:21
  */
-public class CellLayout extends ViewGroup {
-    static final String TAG = "CellLayout";
+public class CellView extends View {
+    static final String TAG = "CellView";
 
-    public CellLayout(Context context) {
+    public CellView(Context context) {
         super(context);
         this.init();
     }
 
-    public CellLayout(Context context, AttributeSet attrs) {
+    public CellView(Context context, AttributeSet attrs) {
         super(context, attrs);
         this.init();
     }
 
-    public CellLayout(Context context, AttributeSet attrs, int defStyleAttr) {
+    public CellView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         this.init();
     }
@@ -63,8 +63,8 @@ public class CellLayout extends ViewGroup {
     private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
         @Override
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
-            newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
+            oldFocus = (null != oldFocus && oldFocus.getParent() == CellView.this) ? oldFocus : null;
+            newFocus = (null != newFocus && newFocus.getParent() == CellView.this) ? newFocus : null;
             if (null != oldFocus || null != newFocus) {
                 post(new SwitchScaleAction(oldFocus, newFocus));
             }
@@ -75,7 +75,6 @@ public class CellLayout extends ViewGroup {
     private final ViewManager manager = new ViewManager();
 
     private void init() {
-        setWillNotDraw(false);
         director.setCallback(manager);
     }
 
@@ -267,8 +266,8 @@ public class CellLayout extends ViewGroup {
     private boolean isTouchMoving = false;
 
     @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        final boolean superState = super.dispatchTouchEvent(event);
+    public boolean onTouchEvent(MotionEvent event) {
+        final boolean superState = super.onTouchEvent(event);
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 getParent().requestDisallowInterceptTouchEvent(true);
@@ -300,17 +299,6 @@ public class CellLayout extends ViewGroup {
                 isTouchMoving = false;
                 getParent().requestDisallowInterceptTouchEvent(false);
                 return superState;
-            default:
-                return superState;
-        }
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent event) {
-        boolean superState = super.onInterceptTouchEvent(event);
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_MOVE:
-                return isTouchMoving;
             default:
                 return superState;
         }
@@ -401,38 +389,18 @@ public class CellLayout extends ViewGroup {
     private Paint focusP = new Paint();
 
     @Override
-    public void draw(Canvas canvas) {
-        super.draw(canvas);
+    protected void onDraw(Canvas canvas) {
+        manager.drawCells(canvas);
     }
 
     @Override
     public void onDrawForeground(Canvas canvas) {
+        Log.e(TAG, "onDraw: ");
         if (null != touchCell) {
             focusP.setStyle(Paint.Style.STROKE);
             focusP.setStrokeWidth(8);
             focusP.setColor(Color.RED);
             canvas.drawRect(touchCell.left - 10, touchCell.top - 10, touchCell.right + 10, touchCell.bottom + 10, focusP);
-        }
-    }
-
-    @Override
-    protected int getChildDrawingOrder(int childCount, int i) {
-        Log.e(TAG, "getChildDrawingOrder: childCount: " + childCount + ", i: " + i);
-        return i;
-    }
-
-    @Override
-    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-        Cell cell = manager.findCellByView(child);
-        if (null != cell) {
-//            canvas.save();
-//            canvas.translate(cell.left, cell.top);
-//            child.draw(canvas);
-//            canvas.restore();
-//            return true;
-            return super.drawChild(canvas, child, drawingTime);
-        } else {
-            return false;
         }
     }
 
@@ -451,7 +419,7 @@ public class CellLayout extends ViewGroup {
     private final class ViewManager implements CellDirector.LifeCycleCallback {
         private ViewAdapter adapter;
         private final SparseArray<ViewPool> poolMap = new SparseArray<>();
-        private final HashMap<Cell, View> activeCells = new HashMap<>();
+        private final LongSparseArray<View> activeCells = new LongSparseArray<>();
 
         private static final int HOLDER_POOL_ID = Integer.MAX_VALUE;
 
@@ -465,13 +433,13 @@ public class CellLayout extends ViewGroup {
                 entry.getValue().draw(canvas);
                 canvas.restore();
             }
-            Log.e(TAG, "[drawCells] " + (System.nanoTime() - begin) / 1000000f);
+            Log.e(CellView.TAG, "[drawCells] " + (System.nanoTime() - begin) / 1000000f);
         }
 
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
             this.adapter = adapter;
-            // prepare holder cache first !!
+            // prepare holder cache cell !!
             final int size = 10;
             final ViewPool pool = getViewPool(null);
             if (pool.size() < size) {
@@ -484,7 +452,6 @@ public class CellLayout extends ViewGroup {
 
         private void checkAndReleaseCache(boolean force) {
             if (force) { // clear all
-                removeAllViewsInLayout();
                 // clear state
                 final Collection<Cell> cells = activeCells.keySet();
                 for (Cell cell : cells) {
@@ -501,13 +468,7 @@ public class CellLayout extends ViewGroup {
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
                     final int targetSize = poolMap.keyAt(i) == HOLDER_POOL_ID ? 10 : 5;
-                    poolMap.valueAt(i).keepSize(targetSize, new Filter<View>() {
-                        @Override
-                        public boolean call(View view) {
-                            removeViewInLayout(view);
-                            return false;
-                        }
-                    });
+                    poolMap.valueAt(i).keepSize(targetSize, null);
                 }
             }
         }
@@ -518,8 +479,8 @@ public class CellLayout extends ViewGroup {
 
         @Deprecated
         Map.Entry<Cell, View> findFocusedCell() {
-            Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
-            for (Map.Entry<Cell, View> entry : entrySet) {
+            Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
+            for (Map.Entry<Cell, View> entry : entries) {
                 if (entry.getValue().hasFocus()) {
                     return entry;
                 }
@@ -547,15 +508,6 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onCellLayout() {
             replaceAllHolder();
-        }
-
-        @Override
-        public void onPositionChanged(Cell cell) {
-            final View view = findViewByCell(cell);
-            if (null != view) {
-                view.offsetLeftAndRight(cell.left - view.getLeft());
-                view.offsetTopAndBottom(cell.top - view.getTop());
-            }
         }
 
         @Override
@@ -605,13 +557,13 @@ public class CellLayout extends ViewGroup {
         }
 
         private void replaceAllHolder() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
-            for (Map.Entry<Cell, View> entry : entrySet) {
+            final Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
+            for (Map.Entry<Cell, View> entry : entries) {
                 final Cell cell = entry.getKey();
                 if (!cell.hasContentView()) {
                     final View holder = entry.getValue();
                     final boolean hasFocus = holder.hasFocus();
-                    getViewPool(null).recycle(holder); // recycle holder first
+                    getViewPool(null).recycle(holder); // recycle holder cell
                     // create content
                     View content = getViewPool(cell).obtain(cell, false);
                     if (null == content) {
@@ -624,6 +576,7 @@ public class CellLayout extends ViewGroup {
                     }
                 }
             }
+            invalidate();
         }
 
         private ViewPool getViewPool(Cell cell) {
@@ -646,9 +599,7 @@ public class CellLayout extends ViewGroup {
             if (null == holder) {
                 throw new IllegalStateException("Adapter.onCreateHolderView() can't return null !");
             }
-            if (CellLayout.this != holder.getParent()) {
-                addViewInLayout(holder, -1, generateDefaultLayoutParams(), true);
-            }
+            holder.setLayoutParams(generateLayoutParams());
             return holder;
         }
 
@@ -663,9 +614,7 @@ public class CellLayout extends ViewGroup {
             if (null == content) {
                 throw new IllegalStateException("Adapter.onCreateView() can't return null !");
             }
-            if (CellLayout.this != content.getParent()) {
-                addViewInLayout(content, -1, generateDefaultLayoutParams(), true);
-            }
+            content.setLayoutParams(generateLayoutParams());
             return content;
         }
 
@@ -676,12 +625,26 @@ public class CellLayout extends ViewGroup {
             activeCells.put(cell, content);
         }
 
+        private ViewGroup.LayoutParams generateLayoutParams() {
+            return new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
         private void layoutViewByCell(Cell cell, View v) {
             if (v.getMeasuredWidth() != cell.width() || v.getMeasuredHeight() != cell.height()) {
                 v.measure(MeasureSpec.makeMeasureSpec(cell.width(), MeasureSpec.EXACTLY),
                         MeasureSpec.makeMeasureSpec(cell.height(), MeasureSpec.EXACTLY));
             }
             v.layout(cell.left, cell.top, cell.right, cell.bottom);
+        }
+    }
+
+    private static final class Pair {
+        Cell cell;
+        View view;
+
+        Pair(Cell cell, View view) {
+            this.cell = cell;
+            this.view = view;
         }
     }
 
