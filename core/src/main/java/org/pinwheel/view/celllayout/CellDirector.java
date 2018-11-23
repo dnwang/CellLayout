@@ -115,6 +115,7 @@ final class CellDirector {
         });
         // move
         for (Cell cell : cells) {
+            onPositionChanged(cell);
             // update visible
             updateVisibleState(cell, false);
         }
@@ -163,6 +164,12 @@ final class CellDirector {
         }
     }
 
+    private void onPositionChanged(Cell cell) {
+        if (null != callback) {
+            callback.onPositionChanged(cell);
+        }
+    }
+
     void onMoveComplete() {
         if (null != callback) {
             callback.onMoveComplete();
@@ -183,6 +190,8 @@ final class CellDirector {
 
     interface LifeCycleCallback {
         void onCellLayout();
+
+        void onPositionChanged(Cell cell);
 
         void onVisibleChanged(Cell cell);
 

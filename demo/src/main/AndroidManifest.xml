@@ -6,6 +6,7 @@
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="CellLayout"
+        android:testOnly="false"
         android:theme="@android:style/Theme.Holo.NoActionBar"
         tools:ignore="GoogleAppIndexingWarning">
         <activity

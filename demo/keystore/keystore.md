@@ -1,0 +1,2 @@
+alias:iflytek
+pwd:cdiflytek

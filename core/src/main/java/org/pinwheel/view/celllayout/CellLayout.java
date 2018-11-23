@@ -81,19 +81,14 @@ public class CellLayout extends ViewGroup {
     private final ViewManager manager = new ViewManager();
 
     private Paint holderPaint = new Paint();
-    private Paint focusPaint = new Paint();
 
     private int flag = 0;
 
     private void init() {
         director.setCallback(manager);
-        setWillNotDraw(false);
         setChildrenDrawingOrderEnabled(true);
 
         holderPaint.setColor(Color.parseColor("#4F586E"));
-        focusPaint.setStyle(Paint.Style.STROKE);
-        focusPaint.setStrokeWidth(2);
-        focusPaint.setColor(Color.LTGRAY);
     }
 
     public void setAdapter(ViewAdapter adapter) {
@@ -130,9 +125,9 @@ public class CellLayout extends ViewGroup {
         }
         final Cell rect = director.getRoot();
         int dx = rect.centerX() - cell.centerX();
-        dx = Math.abs(dx) < 500 ? 0 : dx;
+        dx = Math.abs(dx) < rect.width() / 5 ? 0 : dx;
         int dy = rect.centerY() - cell.centerY();
-        dy = Math.abs(dy) < 300 ? 0 : dy;
+        dy = Math.abs(dy) < rect.height() / 5 ? 0 : dy;
         final LinearGroup vLinear = director.findLinearGroupBy(cell, LinearGroup.VERTICAL);
         final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
@@ -341,7 +336,8 @@ public class CellLayout extends ViewGroup {
         private LinearGroup moveGroup;
 
         private void prepareLongPress(int orientation) {
-            focused = manager.findCellByView(findFocus());
+            final View view = findFocus();
+            focused = manager.findCellByView(view);
             if (null == focused) {
                 return;
             }
@@ -350,6 +346,8 @@ public class CellLayout extends ViewGroup {
             // switch focus to root
             setFocusable(true);
             requestFocus();
+            view.setScaleY(1);
+            view.setScaleX(1);
         }
 
         private void releaseLongPress() {
@@ -362,6 +360,9 @@ public class CellLayout extends ViewGroup {
         Cell restoreFocus;
 
         private void findFocusCell(final int keyCode) {
+            if (null == moveGroup || null == focused) {
+                return;
+            }
             manager.foreachActiveCells(new Filter<Cell>() {
                 @Override
                 public boolean call(Cell cell) {
@@ -456,57 +457,62 @@ public class CellLayout extends ViewGroup {
     }
 
     @Override
-    public void onDraw(Canvas canvas) {
-        Log.e(TAG, "onDraw: ");
-        // draw holder
-        final Collection<Cell> cells = manager.activeCells.keySet();
-        for (Cell cell : cells) {
-            if (!cell.hasContentView()) {
-                canvas.drawRect(cell.left, cell.top, cell.right, cell.bottom, holderPaint);
+    protected void onDraw(final Canvas canvas) {
+        manager.foreachActiveCells(new Filter<Cell>() {
+            @Override
+            public boolean call(Cell cell) {
+                if (!cell.hasContentView()) {
+                    canvas.drawRect(cell.convert(), holderPaint);
+                }
+                return false;
             }
-        }
-        // draw focus
-        final Cell focused = manager.findCellByView(findFocus());
-        if (null != focused) {
-            android.graphics.Rect rect = focused.convert();
-            canvas.drawRect(rect.left - 4, rect.top - 4, rect.right + 4, rect.bottom + 4, focusPaint);
-        }
+        });
     }
+
+    private int focusOrder = -1;
 
     @Override
     protected int getChildDrawingOrder(int childCount, int i) {
-//        Log.e(TAG, "getChildDrawingOrder: childCount: " + childCount + ", i: " + i);
-        return i;
+        final View focus = findFocus();
+        if (getChildAt(i) == focus) {
+            focusOrder = i;
+            return childCount - 1;
+        } else {
+            if (i == childCount - 1 && focusOrder >= 0) {
+                return focusOrder;
+            } else {
+                return i;
+            }
+        }
     }
 
     @Override
     public void childDrawableStateChanged(View child) {
-        if (!manager.activeCells.isEmpty()) {
+        if (!manager.isEmpty()) {
             invalidate();
         }
         super.childDrawableStateChanged(child);
     }
 
-    @Override
-    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-        Log.e(TAG, "drawChild: ");
-        final Cell cell = manager.findCellByView(child);
-        if (null != cell) {
-//            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
-            // first draw on target position, layout it when move complete!
-            canvas.save();
-            canvas.translate(cell.left, cell.top);
-            child.draw(canvas);
-            canvas.restore();
-            return false;
-//            } else {
-////             super method will be draw child by layout position
-//                return super.drawChild(canvas, child, drawingTime);
-//            }
-        } else {
-            return false;
-        }
-    }
+//    @Override
+//    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+//        final Cell cell = manager.findCellByView(child);
+//        if (null != cell) {
+////            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
+//            // first draw on target position, layout it when move complete!
+//            canvas.save();
+//            canvas.translate(cell.left, cell.top);
+//            child.draw(canvas);
+//            canvas.restore();
+//            return true;
+////            } else {
+//            // super method will be draw child by layout position
+////                return super.drawChild(canvas, child, drawingTime);
+////            }
+//        } else {
+//            return false;
+//        }
+//    }
 
     public interface ViewAdapter {
         int getViewType(Cell cell);
@@ -557,6 +563,10 @@ public class CellLayout extends ViewGroup {
             }
         }
 
+        boolean isEmpty() {
+            return activeCells.isEmpty();
+        }
+
         void foreachActiveCells(Filter<Cell> filter) {
             Collection<Cell> cells = activeCells.keySet();
             for (Cell cell : cells) {
@@ -583,7 +593,16 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onCellLayout() {
             replaceAllHolder();
-            layoutAllContent();
+//            layoutAllContent();
+        }
+
+        @Override
+        public void onPositionChanged(Cell cell) {
+            View v = findViewByCell(cell);
+            if (null != v) {
+                v.offsetLeftAndRight(cell.left - v.getLeft());
+                v.offsetTopAndBottom(cell.top - v.getTop());
+            }
         }
 
         @Override
@@ -593,7 +612,8 @@ public class CellLayout extends ViewGroup {
             }
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
-                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
+//                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
+                final View cache = null;
                 if (null != cache) {
                     bindContentToCell(cell, cache);
                 } else { // holder
@@ -678,6 +698,8 @@ public class CellLayout extends ViewGroup {
                 v.measure(MeasureSpec.makeMeasureSpec(cell.width(), MeasureSpec.EXACTLY),
                         MeasureSpec.makeMeasureSpec(cell.height(), MeasureSpec.EXACTLY));
             }
+            // maybe remove
+            v.layout(cell.left, cell.top, cell.right, cell.bottom);
             adapter.onBindView(cell, v);
             Log.d(TAG, "[adapter.onBindView] " + (System.nanoTime() - begin) / 1000000f);
             cell.setHasContentView();
@@ -688,7 +710,10 @@ public class CellLayout extends ViewGroup {
             final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
-                entry.getValue().layout(cell.left, cell.top, cell.right, cell.bottom);
+                final View v = entry.getValue();
+                if (v.getLeft() != cell.left || v.getTop() != cell.top || v.getRight() != cell.right || v.getBottom() != cell.bottom) {
+                    v.layout(cell.left, cell.top, cell.right, cell.bottom);
+                }
             }
         }
     }

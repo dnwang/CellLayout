@@ -10,12 +10,17 @@ class Rect {
     protected int bottom;
 
     static Rect copy(Rect rect) {
-        Rect r = new Rect();
-        r.left = rect.left;
-        r.top = rect.top;
-        r.right = rect.right;
-        r.bottom = rect.bottom;
-        return r;
+        return new Rect(rect.left, rect.top, rect.right, rect.bottom);
+    }
+
+    Rect() {
+    }
+
+    Rect(int left, int top, int right, int bottom) {
+        this.left = left;
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
     }
 
     @Override
