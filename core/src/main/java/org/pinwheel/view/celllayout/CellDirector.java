@@ -1,7 +1,6 @@
 package org.pinwheel.view.celllayout;
 
 import android.util.Log;
-import android.view.View;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -22,12 +21,6 @@ final class CellDirector {
 
     private static final int FLAG_NO_LAYOUT = 1;
     private int state = 0;
-
-    private View view;
-
-    CellDirector(View view) {
-        this.view = view;
-    }
 
     boolean hasRoot() {
         return null != root;
@@ -80,9 +73,9 @@ final class CellDirector {
 
     private final int[] offset = new int[2];
 
-    void moveBy(final CellGroup group, int dx, int dy) {
+    boolean moveBy(final CellGroup group, int dx, int dy) {
         if (null == group) {
-            return;
+            return false;
         }
         final long begin = System.nanoTime();
         offset[0] = dx;
@@ -91,7 +84,7 @@ final class CellDirector {
         final int newDx = offset[0];
         final int newDy = offset[1];
         if (0 == newDx && 0 == newDy) {
-            return;
+            return false;
         }
         group.scrollBy(newDx, newDy);
         // find change area
@@ -125,8 +118,8 @@ final class CellDirector {
             // update visible
             updateVisibleState(cell, false);
         }
-        view.invalidate();
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
+        return true;
     }
 
     void forceLayout() {
@@ -170,18 +163,10 @@ final class CellDirector {
         }
     }
 
-    private Runnable scheduleAction = new Runnable() {
-        @Override
-        public void run() {
-            if (null != callback) {
-                callback.onMoveComplete();
-            }
-        }
-    };
-
     void onMoveComplete() {
-        view.removeCallbacks(scheduleAction);
-        view.postDelayed(scheduleAction, 10);
+        if (null != callback) {
+            callback.onMoveComplete();
+        }
     }
 
     private void onCellLayout() {

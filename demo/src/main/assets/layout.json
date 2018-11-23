@@ -2,7 +2,7 @@
   "version": 1,
   "root": {
     "type": "linear",
-    "divider": 10,
+    "divider": 30,
     "padding": 80,
     "orientation": 1,
     "cells": [
@@ -45,7 +45,7 @@
           {
             "x": 1,
             "y": 0,
-            "marginLeft": 10,
+            "marginLeft": 30,
             "columnCount": 4,
             "rowCount": 4,
             "data": {
@@ -58,7 +58,7 @@
       {
         "type": "linear",
         "height": 600,
-        "divider": 10,
+        "divider": 30,
         "orientation": 0,
         "cells": [
           {
@@ -133,7 +133,7 @@
         "type": "grid",
         "row": 2,
         "column": 5,
-        "divider": 10,
+        "divider": 30,
         "height": 400,
         "cells": [
           {
@@ -178,7 +178,7 @@
       {
         "type": "linear",
         "height": 400,
-        "divider": 10,
+        "divider": 30,
         "orientation": 0,
         "cells": [
           {

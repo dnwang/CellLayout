@@ -477,4 +477,8 @@ class Rect {
         }
     }
 
+    public android.graphics.Rect convert() {
+        return new android.graphics.Rect(left, top, right, bottom);
+    }
+
 }

@@ -69,7 +69,7 @@ public final class MainActivity extends Activity {
         } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
-        cellLayout.setRootCell(root);
+        cellLayout.setRoot(root);
     }
 
     private void initCellLayout() {
@@ -110,13 +110,13 @@ public final class MainActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        cellLayout.scrollToCenter(v, true);
+                        cellLayout.keepCellCenter(cellLayout.findCellByView(v), true);
                     }
                 });
                 view.setOnLongClickListener(new View.OnLongClickListener() {
                     @Override
                     public boolean onLongClick(View v) {
-                        cellLayout.scrollToCenter(v, false);
+                        cellLayout.keepCellCenter(cellLayout.findCellByView(v), false);
                         return true;
                     }
                 });
