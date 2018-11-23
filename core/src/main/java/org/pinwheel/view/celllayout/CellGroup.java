@@ -143,10 +143,19 @@ public class CellGroup extends Cell implements Movable {
         }
     }
 
-    final void foreachSubCells(Filter<Cell> filter) {
+    final void foreachSubCells(boolean withGroup, Filter<Cell> filter) {
         final int size = subCells.size();
         for (int i = 0; i < size; i++) {
-            filter.call(subCells.get(i));
+            Cell cell = subCells.get(i);
+            boolean intercept;
+            if ((cell instanceof CellGroup) && withGroup) {
+                intercept = filter.call(cell);
+            } else {
+                intercept = filter.call(cell);
+            }
+            if (intercept) {
+                break;
+            }
         }
     }
 

@@ -43,7 +43,7 @@ public final class MainActivity extends Activity {
     private void loadLayout() {
         Cell root = null;
         try {
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 10; i++) {
                 CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
                 if (null == root) {
                     root = bundle.root;

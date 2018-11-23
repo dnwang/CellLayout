@@ -83,7 +83,7 @@ public class CellLayout extends ViewGroup {
     private Paint holderPaint = new Paint();
     private Paint focusPaint = new Paint();
 
-    private short flag = 0;
+    private int flag = 0;
 
     private void init() {
         director.setCallback(manager);
@@ -357,8 +357,45 @@ public class CellLayout extends ViewGroup {
             moveGroup = null;
             focused = null;
             director.onMoveComplete();
-            // restore focus
-            // TODO: 2018/11/23
+        }
+
+        Cell restoreFocus;
+
+        private void findFocusCell(final int keyCode) {
+            manager.foreachActiveCells(new Filter<Cell>() {
+                @Override
+                public boolean call(Cell cell) {
+                    if (moveGroup.contains(cell)) {
+                        switch (keyCode) {
+                            case KeyEvent.KEYCODE_DPAD_LEFT:
+                                if (null == restoreFocus || cell.left < restoreFocus.left || (cell.left == restoreFocus.left
+                                        && Math.abs(cell.centerY() - focused.centerY()) < Math.abs(restoreFocus.centerY() - focused.centerY()))) {
+                                    restoreFocus = cell;
+                                }
+                                break;
+                            case KeyEvent.KEYCODE_DPAD_UP:
+                                if (null == restoreFocus || cell.top < restoreFocus.top || (cell.top == restoreFocus.top
+                                        && Math.abs(cell.centerX() - focused.centerX()) < Math.abs(restoreFocus.centerX() - focused.centerX()))) {
+                                    restoreFocus = cell;
+                                }
+                                break;
+                            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                                if (null == restoreFocus || cell.right > restoreFocus.right || (cell.right == restoreFocus.right
+                                        && Math.abs(cell.centerY() - focused.centerY()) < Math.abs(restoreFocus.centerY() - focused.centerY()))) {
+                                    restoreFocus = cell;
+                                }
+                                break;
+                            case KeyEvent.KEYCODE_DPAD_DOWN:
+                                if (null == restoreFocus || cell.bottom > restoreFocus.bottom || (cell.bottom == restoreFocus.bottom
+                                        && Math.abs(cell.centerX() - focused.centerX()) < Math.abs(restoreFocus.centerX() - focused.centerX()))) {
+                                    restoreFocus = cell;
+                                }
+                                break;
+                        }
+                    }
+                    return false;
+                }
+            });
         }
 
         @Override
@@ -385,10 +422,24 @@ public class CellLayout extends ViewGroup {
                     }
                     if (moved) {
                         invalidate();
+                    } else {
+                        // move complete at the bottom
+                        director.onMoveComplete();
                     }
                 }
             } else if (KeyEvent.ACTION_UP == action) {
+                findFocusCell(keyCode);
                 releaseLongPress();
+                // delay wait move complete action replace holder
+                postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != restoreFocus) {
+                            manager.findViewByCell(restoreFocus).requestFocus();
+                        }
+                        restoreFocus = null;
+                    }
+                }, 100);
             }
             return true;
         }
@@ -503,6 +554,13 @@ public class CellLayout extends ViewGroup {
                         }
                     });
                 }
+            }
+        }
+
+        void foreachActiveCells(Filter<Cell> filter) {
+            Collection<Cell> cells = activeCells.keySet();
+            for (Cell cell : cells) {
+                filter.call(cell);
             }
         }
 
