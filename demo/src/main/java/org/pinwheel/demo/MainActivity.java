@@ -4,11 +4,8 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.LongSparseArray;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
@@ -80,17 +77,18 @@ public final class MainActivity extends Activity {
             @Override
             public int getViewType(Cell cell) {
                 final Bundle data = cellDataMap.get(cell.getId());
-                return (null == data) ? 0 : data.getInt("layoutId", 0);
+                return (null == data) ? 0 : data.getInt("style", 0);
             }
 
             @Override
             public View onCreateView(Cell cell) {
-                final View view;
+                final int id;
                 if (getViewType(cell) > 0) {
-                    view = new Button(MainActivity.this);
+                    id = R.layout.item_style_0;
                 } else {
-                    view = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_style_0, null);
+                    id = R.layout.item_style_1;
                 }
+                final View view = LayoutInflater.from(MainActivity.this).inflate(id, cellLayout, false);
                 view.setTag(new ViewHolder(view));
                 return view;
             }
@@ -102,14 +100,12 @@ public final class MainActivity extends Activity {
                 final String title = null == data ? String.valueOf(cellId) : data.getString("title");
                 final ViewHolder holder = (ViewHolder) view.getTag();
                 if (getViewType(cell) > 0) {
-                    TextView text = (TextView) holder.getContentView();
-                    text.setGravity(Gravity.CENTER);
-                    text.setTextColor(getColor());
-                    text.setText(title);
-                } else {
                     holder.getTextView(R.id.text1).setText(title);
                     holder.getTextView(R.id.text2).setText(String.valueOf(cellId));
-                    holder.getImageView(R.id.image).setImageResource(R.mipmap.jj);
+                    holder.getImageView(R.id.image).setImageResource(R.mipmap.ic_launcher);
+                } else {
+                    holder.getTextView(R.id.text1).setText(title);
+                    holder.getImageView(R.id.image).setImageResource(RES_IMG[(int) (Math.random() * RES_IMG.length)]);
                 }
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -129,14 +125,17 @@ public final class MainActivity extends Activity {
             @Override
             public void onViewRecycled(Cell cell, View view) {
                 final ViewHolder holder = (ViewHolder) view.getTag();
-                if (getViewType(cell) > 0) {
-                    // nothing
-                } else {
-                    holder.getImageView(R.id.image).setImageResource(0);
-                }
+                holder.getImageView(R.id.image).setImageResource(0);
             }
         });
     }
+
+    final int[] RES_IMG = new int[]{
+            R.mipmap.poster_1,
+            R.mipmap.poster_2,
+            R.mipmap.poster_3,
+            R.mipmap.poster_4
+    };
 
     private static int getColor() {
         return Color.rgb((int) (Math.random() * 255),

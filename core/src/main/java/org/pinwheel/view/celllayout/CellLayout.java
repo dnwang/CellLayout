@@ -63,11 +63,15 @@ public class CellLayout extends ViewGroup {
     private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
         @Override
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
-            newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
-            if (null != oldFocus || null != newFocus) {
-                post(new SwitchScaleAction(oldFocus, newFocus));
-            }
+//            oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
+//            newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
+//            if (null != oldFocus || null != newFocus) {
+//                post(new SwitchScaleAction(oldFocus, newFocus));
+//            }
+            // TODO: 2018/11/23  test
+//            if (null != newFocus && CellLayout.this == newFocus.getParent()){
+//                scrollToCenter(newFocus, true);
+//            }
         }
     };
 
@@ -75,8 +79,13 @@ public class CellLayout extends ViewGroup {
     private final ViewManager manager = new ViewManager();
 
     private void init() {
-        setWillNotDraw(false);
         director.setCallback(manager);
+        setWillNotDraw(false);
+
+        holderPaint.setColor(Color.DKGRAY);
+        focusPaint.setStyle(Paint.Style.STROKE);
+        focusPaint.setStrokeWidth(8);
+        focusPaint.setColor(Color.RED);
     }
 
     public void setAdapter(ViewAdapter adapter) {
@@ -353,7 +362,7 @@ public class CellLayout extends ViewGroup {
             director.onMoveComplete();
             // restore focus
             Map.Entry<Cell, View> entry = manager.randomActiveCell();
-            if (null != entry) {
+            if (null != entry && null != entry.getValue()) {
                 entry.getValue().requestFocus();
                 setFocusable(false);
             }
@@ -398,28 +407,21 @@ public class CellLayout extends ViewGroup {
         return longKeyPressDirector.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
-    private Paint focusP = new Paint();
+    private Paint holderPaint = new Paint();
+    private Paint focusPaint = new Paint();
 
     @Override
     public void onDraw(Canvas canvas) {
-    }
-
-    @Override
-    public void onDrawForeground(Canvas canvas) {
         // draw holder
         final Collection<Cell> cells = manager.activeCells.keySet();
         for (Cell cell : cells) {
             if (!cell.hasContentView()) {
-                holderPaint.setColor(Color.DKGRAY);
                 canvas.drawRect(cell.left, cell.top, cell.right, cell.bottom, holderPaint);
             }
         }
         // draw focus
         if (null != touchCell) {
-            focusP.setStyle(Paint.Style.STROKE);
-            focusP.setStrokeWidth(8);
-            focusP.setColor(Color.RED);
-            canvas.drawRect(touchCell.left - 10, touchCell.top - 10, touchCell.right + 10, touchCell.bottom + 10, focusP);
+            canvas.drawRect(touchCell.left - 10, touchCell.top - 10, touchCell.right + 10, touchCell.bottom + 10, focusPaint);
         }
     }
 
@@ -430,18 +432,24 @@ public class CellLayout extends ViewGroup {
         return i;
     }
 
-    private Paint holderPaint = new Paint();
+    @Override
+    public void childDrawableStateChanged(View child) {
+        if (!manager.activeCells.isEmpty()) {
+            invalidate();
+        }
+        super.childDrawableStateChanged(child);
+    }
 
     @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         final Cell cell = manager.findCellByView(child);
         if (null != cell) {
-            // first draw in target position, layout it on move complete!
+            // first draw on target position, layout it when move complete!
             canvas.save();
             canvas.translate(cell.left, cell.top);
             child.draw(canvas);
             canvas.restore();
-            return true;
+            return false;
             // super method will be draw child by layout position
             // return super.drawChild(canvas, child, drawingTime);
         } else {
@@ -545,7 +553,6 @@ public class CellLayout extends ViewGroup {
             if (cell.isVisible()) { // add active view
                 final View cache = pool.obtain(cell, true);
                 if (null != cache) {
-                    Log.e(TAG, "[onVisibleChanged] use content cache !! ");
                     bindContentToCell(cell, cache);
                 } else { // holder
                     cell.setHasHolderView();
@@ -603,7 +610,9 @@ public class CellLayout extends ViewGroup {
         }
 
         private View createContent(Cell cell) {
+            final long begin = System.nanoTime();
             final View v = adapter.onCreateView(cell);
+            Log.d(TAG, "[adapter.onCreateView] " + (System.nanoTime() - begin) / 1000000f);
             if (null == v) {
                 throw new IllegalStateException("Adapter.onCreateView() can't return null !");
             }
@@ -614,11 +623,13 @@ public class CellLayout extends ViewGroup {
         }
 
         private void bindContentToCell(Cell cell, View v) {
+            final long begin = System.nanoTime();
             if (v.getMeasuredWidth() != cell.width() || v.getMeasuredHeight() != cell.height()) {
                 v.measure(MeasureSpec.makeMeasureSpec(cell.width(), MeasureSpec.EXACTLY),
                         MeasureSpec.makeMeasureSpec(cell.height(), MeasureSpec.EXACTLY));
             }
             adapter.onBindView(cell, v);
+            Log.d(TAG, "[adapter.onBindView] " + (System.nanoTime() - begin) / 1000000f);
             cell.setHasContentView();
             activeCells.put(cell, v);
         }
@@ -641,10 +652,6 @@ public class CellLayout extends ViewGroup {
 
         int size() {
             return caches.size();
-        }
-
-        View obtain() {
-            return obtain(null, false);
         }
 
         View obtain(Cell cell, boolean force) {

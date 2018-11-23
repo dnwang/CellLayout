@@ -3,8 +3,8 @@ package org.pinwheel.view.celllayout;
 import android.util.Log;
 import android.view.View;
 
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Copyright (C), 2018 <br>
@@ -106,7 +106,7 @@ final class CellDirector {
         } else if (0 != newDy) {
             changeArea.bottom -= newDy;
         }
-        final Set<Cell> cells = new HashSet<>();
+        final Collection<Cell> cells = new HashSet<>();
         group.foreachAllCells(true, new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
