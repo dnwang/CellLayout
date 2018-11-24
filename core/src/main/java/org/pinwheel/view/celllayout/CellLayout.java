@@ -132,16 +132,14 @@ public class CellLayout extends ViewGroup {
         final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
             if (director.moveBy(vLinear, 0, dy) | director.moveBy(hLinear, dx, 0)) {
-                invalidate();
                 director.onMoveComplete();
             }
         } else {
             new AutoMovingAction(dx, dy, new AutoMovingCallback() {
                 @Override
                 public void move(int offsetX, int offsetY) {
-                    if (director.moveBy(hLinear, offsetX, 0) | director.moveBy(vLinear, 0, offsetY)) {
-                        invalidate();
-                    }
+                    director.moveBy(hLinear, offsetX, 0);
+                    director.moveBy(vLinear, 0, offsetY);
                 }
             }).execute();
         }
@@ -179,16 +177,13 @@ public class CellLayout extends ViewGroup {
             final LinearGroup cell = (LinearGroup) root;
             if (!withAnimation) {
                 if (director.moveBy(cell, dx, dy)) {
-                    invalidate();
                     director.onMoveComplete();
                 }
             } else {
                 new AutoMovingAction(dx, dy, new AutoMovingCallback() {
                     @Override
                     public void move(int offsetX, int offsetY) {
-                        if (director.moveBy(cell, offsetX, offsetY)) {
-                            invalidate();
-                        }
+                        director.moveBy(cell, offsetX, offsetY);
                     }
                 }).execute();
             }
@@ -288,10 +283,7 @@ public class CellLayout extends ViewGroup {
                     flag |= FLAG_MOVING_TOUCH;
                     final int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
                     touchPoint.set((int) event.getX(), (int) event.getY());
-                    boolean moved = director.moveBy(director.findLinearGroupBy(touchCell, dir), dx, dy);
-                    if (moved) {
-                        invalidate();
-                    }
+                    director.moveBy(director.findLinearGroupBy(touchCell, dir), dx, dy);
                 } else {
                     getParent().requestDisallowInterceptTouchEvent(false);
                 }
@@ -421,11 +413,9 @@ public class CellLayout extends ViewGroup {
                             moved = director.moveBy(moveGroup, 0, -OFFSET);
                             break;
                     }
-                    if (moved) {
-                        invalidate();
-                    } else {
+                    if (!moved) {
                         // move complete at the bottom
-                        director.onMoveComplete();
+                        // TODO: 2018/11/24
                     }
                 }
             } else if (KeyEvent.ACTION_UP == action) {
@@ -487,32 +477,15 @@ public class CellLayout extends ViewGroup {
     }
 
     @Override
-    public void childDrawableStateChanged(View child) {
-        if (!manager.isEmpty()) {
-            invalidate();
+    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        final Cell cell = manager.findCellByView(child);
+        if (null != cell) {
+            // super method will be draw child by layout position
+            return super.drawChild(canvas, child, drawingTime);
+        } else {
+            return false;
         }
-        super.childDrawableStateChanged(child);
     }
-
-//    @Override
-//    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-//        final Cell cell = manager.findCellByView(child);
-//        if (null != cell) {
-////            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
-//            // first draw on target position, layout it when move complete!
-//            canvas.save();
-//            canvas.translate(cell.left, cell.top);
-//            child.draw(canvas);
-//            canvas.restore();
-//            return true;
-////            } else {
-//            // super method will be draw child by layout position
-////                return super.drawChild(canvas, child, drawingTime);
-////            }
-//        } else {
-//            return false;
-//        }
-//    }
 
     public interface ViewAdapter {
         int getViewType(Cell cell);
@@ -593,23 +566,23 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onCellLayout() {
             replaceAllHolder();
-//            layoutAllContent();
         }
 
         @Override
-        public void onPositionChanged(Cell cell) {
-            View v = findViewByCell(cell);
-            if (null != v) {
-                v.offsetLeftAndRight(cell.left - v.getLeft());
-                v.offsetTopAndBottom(cell.top - v.getTop());
+        public void onMoved(final CellGroup group, final int dx, final int dy) {
+            final Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
+            for (Map.Entry<Cell, View> entry : entries) {
+                View v = entry.getValue();
+                if (null != v && null != group.findCellById(entry.getKey().getId())) {
+                    v.offsetLeftAndRight(dx);
+                    v.offsetTopAndBottom(dy);
+                }
             }
         }
 
         @Override
         public void onVisibleChanged(final Cell cell) {
-            if (cell instanceof CellGroup) { // don't care group
-                return;
-            }
+            if (cell instanceof CellGroup) return; // don't care group
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
 //                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
@@ -630,28 +603,19 @@ public class CellLayout extends ViewGroup {
             }
         }
 
-        private final Runnable completeAction = new Runnable() {
-            @Override
-            public void run() {
-                replaceAllHolder();
-                layoutAllContent();
-                // recycle should be in last
-                checkAndReleaseCache(false);
-                // log manager info
-                final int size = poolMap.size();
-                Log.d(TAG, "[into] --------------");
-                for (int i = 0; i < size; i++) {
-                    Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
-                }
-                Log.d(TAG, "[into] activeCells size: " + activeCells.size());
-                Log.d(TAG, "[into] --------------");
-            }
-        };
-
         @Override
         public void onMoveComplete() {
-            removeCallbacks(completeAction);
-            postDelayed(completeAction, 10);
+            replaceAllHolder();
+            // recycle should be in last
+            checkAndReleaseCache(false);
+            // log manager info
+            final int size = poolMap.size();
+            Log.d(TAG, "[into] --------------");
+            for (int i = 0; i < size; i++) {
+                Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
+            }
+            Log.d(TAG, "[into] activeCells size: " + activeCells.size());
+            Log.d(TAG, "[into] --------------");
         }
 
         private void replaceAllHolder() {
@@ -704,17 +668,6 @@ public class CellLayout extends ViewGroup {
             Log.d(TAG, "[adapter.onBindView] " + (System.nanoTime() - begin) / 1000000f);
             cell.setHasContentView();
             activeCells.put(cell, v);
-        }
-
-        private void layoutAllContent() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
-            for (Map.Entry<Cell, View> entry : entrySet) {
-                final Cell cell = entry.getKey();
-                final View v = entry.getValue();
-                if (v.getLeft() != cell.left || v.getTop() != cell.top || v.getRight() != cell.right || v.getBottom() != cell.bottom) {
-                    v.layout(cell.left, cell.top, cell.right, cell.bottom);
-                }
-            }
         }
     }
 

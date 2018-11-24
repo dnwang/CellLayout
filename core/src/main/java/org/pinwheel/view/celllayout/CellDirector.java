@@ -73,51 +73,36 @@ final class CellDirector {
 
     private final int[] offset = new int[2];
 
-    boolean moveBy(final CellGroup group, int dx, int dy) {
-        if (null == group) {
-            return false;
-        }
+    boolean moveBy(final CellGroup group, int tmpDx, int tmpDy) {
+        if (null == group) return false;
         final long begin = System.nanoTime();
-        offset[0] = dx;
-        offset[1] = dy;
+        offset[0] = tmpDx;
+        offset[1] = tmpDy;
         group.fixScrollOffset(offset);
-        final int newDx = offset[0];
-        final int newDy = offset[1];
-        if (0 == newDx && 0 == newDy) {
+        final int dx = offset[0];
+        final int dy = offset[1];
+        if (0 == dx && 0 == dy) {
             return false;
         }
-        group.scrollBy(newDx, newDy);
-        // find change area
-        final Rect changeArea = root.getRect(); // copy new
-        if (newDx > 0) {
-            changeArea.left -= newDx;
-        } else if (0 != newDx) {
-            changeArea.right -= newDx;
-        }
-        if (newDy > 0) {
-            changeArea.top -= newDy;
-        } else if (0 != newDy) {
-            changeArea.bottom -= newDy;
-        }
-        final Collection<Cell> cells = new HashSet<>();
+        group.scrollBy(dx, dy);
+        final Collection<Cell> stateChangedCells = new HashSet<>();
         group.foreachAllCells(true, new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
-                if (cell == group) {// don't move self
-                    return false;
+                if (cell == group) return false; // don't move self
+                cell.offset(dx, dy);
+                boolean stateChanged = setVisibleState(cell);
+                if (stateChanged) {
+                    stateChangedCells.add(cell);
                 }
-                if (Rect.intersects(changeArea, cell)) {
-                    cells.add(cell);
-                }
-                cell.offset(newDx, newDy);// after compare
                 return false;
             }
         });
-        // move
-        for (Cell cell : cells) {
-            onPositionChanged(cell);
-            // update visible
-            updateVisibleState(cell, false);
+        // move first
+        onMoved(group, dx, dy);
+        // update visible
+        for (Cell cell : stateChangedCells) {
+            onCellVisibleChanged(cell);
         }
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
         return true;
@@ -137,8 +122,10 @@ final class CellDirector {
             foreachAllCells(true, new Filter<Cell>() {
                 @Override
                 public boolean call(Cell cell) {
-                    // visible state
-                    updateVisibleState(cell, true);
+                    // set visible state
+                    setVisibleState(cell);
+                    // force notify outSide
+                    onCellVisibleChanged(cell);
                     return false;
                 }
             });
@@ -146,12 +133,10 @@ final class CellDirector {
         }
     }
 
-    private void updateVisibleState(Cell cell, boolean force) {
+    private boolean setVisibleState(Cell cell) {
         final boolean oldState = cell.isVisible();
         cell.setVisible(root);
-        if (force || oldState != cell.isVisible()) {
-            onCellVisibleChanged(cell);
-        }
+        return oldState != cell.isVisible();
     }
 
     private void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
@@ -164,9 +149,9 @@ final class CellDirector {
         }
     }
 
-    private void onPositionChanged(Cell cell) {
+    private void onMoved(CellGroup group, int dx, int dy) {
         if (null != callback) {
-            callback.onPositionChanged(cell);
+            callback.onMoved(group, dx, dy);
         }
     }
 
@@ -191,7 +176,7 @@ final class CellDirector {
     interface LifeCycleCallback {
         void onCellLayout();
 
-        void onPositionChanged(Cell cell);
+        void onMoved(CellGroup group, int dx, int dy);
 
         void onVisibleChanged(Cell cell);
 
