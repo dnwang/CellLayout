@@ -84,7 +84,6 @@ final class CellDirector {
         if (0 == dx && 0 == dy) {
             return false;
         }
-        group.scrollBy(dx, dy);
         final Collection<Cell> stateChangedCells = new HashSet<>();
         group.foreachAllCells(true, new Filter<Cell>() {
             @Override
@@ -99,6 +98,7 @@ final class CellDirector {
             }
         });
         // move first
+        group.scrollBy(dx, dy);
         onMoved(group, dx, dy);
         // update visible
         for (Cell cell : stateChangedCells) {

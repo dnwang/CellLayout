@@ -16,6 +16,10 @@ class Rect {
     Rect() {
     }
 
+    Rect(Rect rect) {
+        this(rect.left, rect.top, rect.right, rect.bottom);
+    }
+
     Rect(int left, int top, int right, int bottom) {
         this.left = left;
         this.top = top;

@@ -14,8 +14,8 @@ import java.io.Serializable;
 public class Cell extends Rect implements Serializable {
 
     private static final int FLAG_VISIBLE = 1;
-    // 0: holder view, 1: content view
-    private static final int FLAG_HAS_CONTENT_VIEW = FLAG_VISIBLE << 1;
+    // 0: empty, 1: content view
+    private static final int FLAG_HAS_CONTENT = FLAG_VISIBLE << 1;
 
     private static long ID_OFFSET = 0;
     private final long id;
@@ -95,16 +95,20 @@ public class Cell extends Rect implements Serializable {
 
     // --------- state
 
-    public final boolean hasContentView() {
-        return (state & FLAG_HAS_CONTENT_VIEW) != 0;
+    public final void clearAllState() {
+        state = 0;
     }
 
-    public final void setHasContentView() {
-        state |= FLAG_HAS_CONTENT_VIEW;
+    public final boolean hasContent() {
+        return (state & FLAG_HAS_CONTENT) != 0;
     }
 
-    public final void setHasHolderView() {
-        state &= ~FLAG_HAS_CONTENT_VIEW;
+    public final void setHasContent() {
+        state |= FLAG_HAS_CONTENT;
+    }
+
+    public final void setEmpty() {
+        state &= ~FLAG_HAS_CONTENT;
     }
 
     public final boolean isVisible() {
