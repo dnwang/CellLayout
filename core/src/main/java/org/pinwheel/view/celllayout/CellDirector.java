@@ -71,16 +71,19 @@ final class CellDirector {
         }
     }
 
-    private final int[] offset = new int[2];
+    boolean scrollBy(final CellGroup group, final int dx, final int dy) {
+        if (null == group) return false;
+        return scrollTo(group, group.scrollX + dx, group.scrollY + dy);
+    }
 
-    boolean moveBy(final CellGroup group, int tmpDx, int tmpDy) {
+    boolean scrollTo(final CellGroup group, final int x, final int y) {
         if (null == group) return false;
         final long begin = System.nanoTime();
-        offset[0] = tmpDx;
-        offset[1] = tmpDy;
-        group.fixScrollOffset(offset);
-        final int dx = offset[0];
-        final int dy = offset[1];
+        final int scrollX = group.scrollX;
+        final int scrollY = group.scrollY;
+        group.scrollTo(x, y);
+        final int dx = group.scrollX - scrollX;
+        final int dy = group.scrollY - scrollY;
         if (0 == dx && 0 == dy) {
             return false;
         }
@@ -98,7 +101,6 @@ final class CellDirector {
             }
         });
         // move first
-        group.scrollBy(dx, dy);
         onMoved(group, dx, dy);
         // update visible
         for (Cell cell : stateChangedCells) {
@@ -135,7 +137,7 @@ final class CellDirector {
 
     private boolean setVisibleState(Cell cell) {
         final boolean oldState = cell.isVisible();
-        cell.setVisible(root);
+        cell.setVisible(new Rect(root).scale(1.1f));
         return oldState != cell.isVisible();
     }
 

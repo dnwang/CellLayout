@@ -93,55 +93,21 @@ public class LinearGroup extends CellGroup {
     }
 
     @Override
-    public void fixScrollOffset(int[] offset) {
-        if (0 == offset[0] && 0 == offset[1]) {
-            return;
-        }
-        // fix dx
-        int tmp = scrollX + offset[0];
-        int max = -(contentWidth - width());
-        if (tmp > 0) {
-            offset[0] = -scrollX;
-        } else if (tmp < max) {
-            offset[0] = max - scrollX;
-        }
-        // fix dy
-        tmp = scrollY + offset[1];
-        max = -(contentHeight - height());
-        if (tmp > 0) {
-            offset[1] = -scrollY;
-        } else if (tmp < max) {
-            offset[1] = max - scrollY;
-        }
-    }
-
-    @Override
-    public void scrollBy(int dx, int dy) {
-        dy = HORIZONTAL == orientation ? 0 : dy;
-        dx = HORIZONTAL != orientation ? 0 : dx;
-        super.scrollBy(dx, dy);
-    }
-
-    @Override
     public void scrollTo(int x, int y) {
-        y = HORIZONTAL == orientation ? top : y;
-        x = HORIZONTAL != orientation ? left : x;
-        super.scrollTo(x, y);
+        super.scrollTo(Math.max(width() - contentWidth, Math.min(x, 0)),
+                Math.max(height() - contentHeight, Math.min(y, 0)));
     }
 
-    @Override
     public int getContentWidth() {
         return contentWidth;
     }
 
-    @Override
     public int getContentHeight() {
         return contentHeight;
     }
 
-    private int contentWidth, contentHeight;
+    int contentWidth, contentHeight;
 
-    @Override
     public void measureContent() {
         contentWidth = 0;
         contentHeight = 0;

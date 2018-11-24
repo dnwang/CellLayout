@@ -1,5 +1,9 @@
 package org.pinwheel.view.celllayout;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.PropertyValuesHolder;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -14,6 +18,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.DecelerateInterpolator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,129 +119,84 @@ public class CellLayout extends ViewGroup {
         return manager.findViewByCell(cell);
     }
 
-    @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        if (changed) {
-            director.layout(l, t, getMeasuredWidth(), getMeasuredHeight());
-        }
-    }
-
     public void keepCellCenter(Cell cell, boolean withAnimation) {
         if (!director.hasRoot() || null == cell) {
             return;
         }
         final Cell rect = director.getRoot();
         int dx = rect.centerX() - cell.centerX();
-        dx = Math.abs(dx) < rect.width() / 5 ? 0 : dx;
         int dy = rect.centerY() - cell.centerY();
-        dy = Math.abs(dy) < rect.height() / 5 ? 0 : dy;
         final LinearGroup vLinear = director.findLinearGroupBy(cell, LinearGroup.VERTICAL);
         final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
-            if (director.moveBy(vLinear, 0, dy) | director.moveBy(hLinear, dx, 0)) {
+            if (director.scrollBy(vLinear, 0, dy) | director.scrollBy(hLinear, dx, 0)) {
                 invalidate();
                 director.onMoveComplete();
             }
         } else {
-            new AutoMovingAction(dx, dy, new AutoMovingCallback() {
-                @Override
-                public void move(int offsetX, int offsetY) {
-                    if (director.moveBy(hLinear, offsetX, 0) | director.moveBy(vLinear, 0, offsetY)) {
-                        invalidate();
-                    }
-                }
-            }).execute();
+            new AutoMovingAction(hLinear, vLinear, dx, dy).execute();
         }
     }
 
-    @Override
-    public void scrollTo(int x, int y) {
-        scrollTo(x, y, false);
-    }
+    private ValueAnimator movingAnimator;
 
-    public void scrollTo(int x, int y, boolean withAnimation) {
-        if (!director.hasRoot()) {
-            return;
-        }
-        final Cell root = director.getRoot();
-        if (root instanceof LinearGroup) {
-            final CellGroup cell = (LinearGroup) root;
-            scrollBy(x - (cell.left + cell.scrollX),
-                    y - (cell.top + cell.scrollY),
-                    withAnimation);
-        }
-    }
+    private final class AutoMovingAction {
+        final LinearGroup hLinear, vLinear;
+        final int fromX, fromY, toX, toY;
 
-    @Override
-    public void scrollBy(int dx, int dy) {
-        scrollBy(dx, dy, false);
-    }
-
-    public void scrollBy(int dx, int dy, boolean withAnimation) {
-        if (!director.hasRoot() || (0 == dx && 0 == dy)) {
-            return;
-        }
-        final Cell root = director.getRoot();
-        if (root instanceof LinearGroup) {
-            final LinearGroup cell = (LinearGroup) root;
-            if (!withAnimation) {
-                if (director.moveBy(cell, dx, dy)) {
-                    invalidate();
-                    director.onMoveComplete();
-                }
+        AutoMovingAction(LinearGroup hLinear, LinearGroup vLinear, int dx, int dy) {
+            this.hLinear = hLinear;
+            this.vLinear = vLinear;
+            if (null == hLinear) {
+                fromX = toX = 0;
             } else {
-                new AutoMovingAction(dx, dy, new AutoMovingCallback() {
-                    @Override
-                    public void move(int offsetX, int offsetY) {
-                        if (director.moveBy(cell, offsetX, offsetY)) {
-                            invalidate();
-                        }
-                    }
-                }).execute();
+                fromX = hLinear.scrollX;
+                toX = fromX + dx;
             }
-        }
-    }
-
-    private final class AutoMovingAction implements Runnable {
-        int sum;
-        final int unitX, unitY;
-        final AutoMovingCallback callback;
-
-        AutoMovingAction(int dx, int dy, AutoMovingCallback callback) {
-            this.callback = callback;
-            final int absDx = Math.abs(dx);
-            final int absDy = Math.abs(dy);
-            sum = Math.max(absDx, absDy) > 300 ? 6 : 4;
-            unitX = absDx > sum ? (dx / sum) : (0 != dx ? (dx / absDx) : 0);
-            unitY = absDy > sum ? (dy / sum) : (0 != dy ? (dy / absDy) : 0);
+            if (null == vLinear) {
+                fromY = toY = 0;
+            } else {
+                fromY = vLinear.scrollY;
+                toY = fromY + dy;
+            }
         }
 
         final void execute() {
-            post(this);
-            flag |= FLAG_MOVING_AUTO;
-        }
-
-        @Override
-        public void run() {
-            callback.move(unitX, unitY);
-            if (sum-- > 0) {
-                post(this);
-            } else {
-                flag &= ~FLAG_MOVING_AUTO;
-                director.onMoveComplete();
+            if (null != movingAnimator) {
+                movingAnimator.cancel();
             }
+            movingAnimator = ValueAnimator.ofPropertyValuesHolder(
+                    PropertyValuesHolder.ofInt("x", fromX, toX),
+                    PropertyValuesHolder.ofInt("y", fromY, toY)
+            ).setDuration(300);
+            movingAnimator.setInterpolator(new DecelerateInterpolator());
+            movingAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator anim) {
+                    final int scrollX = (int) anim.getAnimatedValue("x");
+                    final int scrollY = (int) anim.getAnimatedValue("y");
+                    if (director.scrollTo(hLinear, scrollX, 0) | director.scrollTo(vLinear, 0, scrollY)) {
+                        invalidate();
+                    }
+                }
+            });
+            movingAnimator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    flag |= FLAG_MOVING_AUTO;
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    flag &= ~FLAG_MOVING_AUTO;
+                    director.onMoveComplete();
+                }
+            });
+            movingAnimator.start();
         }
     }
 
-    private interface AutoMovingCallback {
-        void move(int offsetX, int offsetY);
-    }
-
-    private final class SwitchScaleAction implements Runnable {
-        int sum = 4;
-        final float maxScale = 1.1f;
-        final float mimScale = 1f;
-        final float unit = (maxScale - mimScale) / sum;
+    private final class SwitchScaleAction {
         final View zoomIn, zoomOut;
 
         SwitchScaleAction(View zoomIn, View zoomOut) {
@@ -244,25 +205,41 @@ public class CellLayout extends ViewGroup {
         }
 
         final void execute() {
-            post(this);
-            flag |= FLAG_SCALING;
-        }
+            final ValueAnimator anim = ValueAnimator.ofFloat(0f, 0.1f).setDuration(300);
+            anim.setInterpolator(new AnticipateOvershootInterpolator());
+            anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator anim) {
+                    final float scale = (float) anim.getAnimatedValue();
+                    if (null != zoomIn) {
+                        zoomIn.setScaleX(1.1f - scale);
+                        zoomIn.setScaleY(1.1f - scale);
+                    }
+                    if (null != zoomOut) {
+                        zoomOut.setScaleX(1 + scale);
+                        zoomOut.setScaleY(1 + scale);
+                    }
+                }
+            });
+            anim.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    flag |= FLAG_SCALING;
+                }
 
-        @Override
-        public void run() {
-            if (null != zoomIn && zoomIn.getScaleX() > mimScale) {
-                zoomIn.setScaleX(zoomIn.getScaleX() - unit);
-                zoomIn.setScaleY(zoomIn.getScaleY() - unit);
-            }
-            if (null != zoomOut && zoomOut.getScaleX() < maxScale) {
-                zoomOut.setScaleX(zoomOut.getScaleX() + unit);
-                zoomOut.setScaleY(zoomOut.getScaleY() + unit);
-            }
-            if (sum-- > 0) {
-                post(this);
-            } else {
-                flag &= ~FLAG_SCALING;
-            }
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    flag &= ~FLAG_SCALING;
+                }
+            });
+            anim.start();
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        if (changed) {
+            director.layout(l, t, getMeasuredWidth(), getMeasuredHeight());
         }
     }
 
@@ -288,7 +265,7 @@ public class CellLayout extends ViewGroup {
                 if ((flag & FLAG_MOVING_TOUCH) != 0 || absDx > 10 || absDy > 10) {
                     final int dir = absDx > absDy ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL;
                     touchPoint.set((int) event.getX(), (int) event.getY());
-                    if (director.moveBy(director.findLinearGroupBy(touchCell, dir), dx, dy)) {
+                    if (director.scrollBy(director.findLinearGroupBy(touchCell, dir), dx, dy)) {
                         flag |= FLAG_MOVING_TOUCH;
                         invalidate();
                     }
@@ -419,16 +396,16 @@ public class CellLayout extends ViewGroup {
                         boolean moved = false;
                         switch (keyCode) {
                             case KeyEvent.KEYCODE_DPAD_LEFT:
-                                moved = director.moveBy(moveGroup, OFFSET, 0);
+                                moved = director.scrollBy(moveGroup, OFFSET, 0);
                                 break;
                             case KeyEvent.KEYCODE_DPAD_UP:
-                                moved = director.moveBy(moveGroup, 0, OFFSET);
+                                moved = director.scrollBy(moveGroup, 0, OFFSET);
                                 break;
                             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                                moved = director.moveBy(moveGroup, -OFFSET, 0);
+                                moved = director.scrollBy(moveGroup, -OFFSET, 0);
                                 break;
                             case KeyEvent.KEYCODE_DPAD_DOWN:
-                                moved = director.moveBy(moveGroup, 0, -OFFSET);
+                                moved = director.scrollBy(moveGroup, 0, -OFFSET);
                                 break;
                         }
                         if (!moved) {
@@ -472,11 +449,8 @@ public class CellLayout extends ViewGroup {
 
     @Override
     public void draw(Canvas canvas) {
+        focusOrder = -1;
         super.draw(canvas);
-    }
-
-    @Override
-    protected void onDraw(final Canvas canvas) {
         drawEmptyHolder(canvas);
     }
 
@@ -498,28 +472,10 @@ public class CellLayout extends ViewGroup {
     }
 
     @Override
-    public void childDrawableStateChanged(View child) {
-        if (!manager.isEmpty()) {
-            invalidate();
-        }
-        super.childDrawableStateChanged(child);
-    }
-
-    @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         final Cell cell = manager.findCellByView(child);
         if (null != cell) {
-            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
-                // first draw on target position, layout it when move complete!
-                canvas.save();
-                canvas.translate(cell.left, cell.top);
-                child.draw(canvas);
-                canvas.restore();
-                return true;
-            } else {
-                // super method will be draw child by layout position
-                return super.drawChild(canvas, child, drawingTime);
-            }
+            return super.drawChild(canvas, child, drawingTime);
         } else {
             return false;
         }
@@ -574,10 +530,6 @@ public class CellLayout extends ViewGroup {
             }
         }
 
-        boolean isEmpty() {
-            return activeCells.isEmpty();
-        }
-
         void foreachActiveCells(Filter<Cell> filter) {
             Collection<Cell> cells = activeCells.keySet();
             for (Cell cell : cells) {
@@ -604,19 +556,18 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onCellLayout() {
             replaceAllHolder();
-            layoutAllContent();
         }
 
         @Override
         public void onMoved(final CellGroup group, final int dx, final int dy) {
-//            final Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
-//            for (Map.Entry<Cell, View> entry : entries) {
-//                View v = entry.getValue();
-//                if (null != v && null != group.findCellById(entry.getKey().getId())) {
-//                    v.offsetLeftAndRight(dx);
-//                    v.offsetTopAndBottom(dy);
-//                }
-//            }
+            final Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
+            for (Map.Entry<Cell, View> entry : entries) {
+                View v = entry.getValue();
+                if (null != v && null != group.findCellById(entry.getKey().getId())) {
+                    v.offsetLeftAndRight(dx);
+                    v.offsetTopAndBottom(dy);
+                }
+            }
         }
 
         @Override
@@ -624,8 +575,7 @@ public class CellLayout extends ViewGroup {
             if (cell instanceof CellGroup) return; // don't care group
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
-//                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
-                final View cache = null;
+                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
                 if (null != cache) {
                     bindContentToCell(cell, cache);
                 } else { // holder
@@ -645,7 +595,6 @@ public class CellLayout extends ViewGroup {
         @Override
         public void onMoveComplete() {
             replaceAllHolder();
-            layoutAllContent();
             // recycle should be in last
             checkAndReleaseCache(false);
 
@@ -696,27 +645,16 @@ public class CellLayout extends ViewGroup {
         }
 
         private void bindContentToCell(Cell cell, View v) {
+            // layout
             if (v.getMeasuredWidth() != cell.width() || v.getMeasuredHeight() != cell.height()) {
                 v.measure(MeasureSpec.makeMeasureSpec(cell.width(), MeasureSpec.EXACTLY),
                         MeasureSpec.makeMeasureSpec(cell.height(), MeasureSpec.EXACTLY));
             }
-            // maybe remove
-//            v.layout(cell.left, cell.top, cell.right, cell.bottom);
-
+            v.layout(cell.left, cell.top, cell.right, cell.bottom);
+            // update
             adapter.onBindView(cell, v);
             cell.setHasContent();
             activeCells.put(cell, v);
-        }
-
-        private void layoutAllContent() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
-            for (Map.Entry<Cell, View> entry : entrySet) {
-                final Cell cell = entry.getKey();
-                final View v = entry.getValue();
-                if (v.getLeft() != cell.left || v.getTop() != cell.top || v.getRight() != cell.right || v.getBottom() != cell.bottom) {
-                    v.layout(cell.left, cell.top, cell.right, cell.bottom);
-                }
-            }
         }
     }
 

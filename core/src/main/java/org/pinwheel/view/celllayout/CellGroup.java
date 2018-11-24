@@ -15,7 +15,7 @@ import java.util.List;
  * @author dnwang
  * @version 2018/11/15,14:01
  */
-public class CellGroup extends Cell implements Movable {
+public class CellGroup extends Cell {
 
     private final List<Cell> subCells = new ArrayList<>();
     // all cell cache
@@ -74,50 +74,9 @@ public class CellGroup extends Cell implements Movable {
 
     int scrollX, scrollY;
 
-    @Override
-    public void fixScrollOffset(int[] offset) {
-    }
-
-    @Override
-    public void scrollBy(final int dx, final int dy) {
-        if (0 == dx && 0 == dy) {
-            return;
-        }
-        scrollX += dx;
-        scrollY += dy;
-    }
-
-    @Override
     public void scrollTo(int x, int y) {
-        int l = left + scrollX, t = top + scrollY;
-        if (l == x && t == y) {
-            return;
-        }
-        scrollBy(x - l, y - t);
-    }
-
-    @Override
-    public int getScrollX() {
-        return scrollX;
-    }
-
-    @Override
-    public int getScrollY() {
-        return scrollY;
-    }
-
-    @Override
-    public int getContentWidth() {
-        return width();
-    }
-
-    @Override
-    public int getContentHeight() {
-        return height();
-    }
-
-    @Override
-    public void measureContent() {
+        scrollX = x;
+        scrollY = y;
     }
 
     @Override

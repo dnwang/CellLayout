@@ -477,13 +477,14 @@ class Rect {
      *
      * @hide
      */
-    void scale(float scale) {
+    Rect scale(float scale) {
         if (scale != 1.0f) {
             left = (int) (left * scale + 0.5f);
             top = (int) (top * scale + 0.5f);
             right = (int) (right * scale + 0.5f);
             bottom = (int) (bottom * scale + 0.5f);
         }
+        return this;
     }
 
     public android.graphics.Rect convert() {
