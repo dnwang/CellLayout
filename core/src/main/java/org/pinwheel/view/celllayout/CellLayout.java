@@ -628,7 +628,7 @@ public class CellLayout extends ViewGroup {
         }
 
         private View createHolder() {
-            View v = new View(getContext());
+            final View v = new View(getContext());
             v.setBackgroundColor(Color.parseColor("#4F586E"));
             v.setFocusable(true);
             addViewInLayout(v, -1, generateDefaultLayoutParams(), true);

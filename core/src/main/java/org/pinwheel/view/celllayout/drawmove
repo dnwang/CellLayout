@@ -601,6 +601,7 @@ public class CellLayout extends ViewGroup {
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
                 final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
+//                View cache = null;
                 if (null != cache) {
                     bindContentToCell(cell, cache);
                 } else { // holder
