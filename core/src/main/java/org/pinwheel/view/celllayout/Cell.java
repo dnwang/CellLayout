@@ -63,8 +63,8 @@ public class Cell extends Rect implements Serializable {
         this.parent = parent;
     }
 
-    protected final void setVisible(Rect referenceArea) {
-        if (Rect.intersects(referenceArea, this)) {
+    protected final void setVisible(boolean is) {
+        if (is) {
             state |= FLAG_VISIBLE;
         } else {
             state &= ~FLAG_VISIBLE;

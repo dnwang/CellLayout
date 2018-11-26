@@ -137,7 +137,7 @@ final class CellDirector {
 
     private boolean setVisibleState(Cell cell) {
         final boolean oldState = cell.isVisible();
-        cell.setVisible(new Rect(root).scale(1.1f));
+        cell.setVisible(Rect.intersects(root, cell));
         return oldState != cell.isVisible();
     }
 
