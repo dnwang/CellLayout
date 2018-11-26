@@ -106,7 +106,7 @@ public class LinearGroup extends CellGroup {
         return contentHeight;
     }
 
-    int contentWidth, contentHeight;
+    private int contentWidth, contentHeight;
 
     public void measureContent() {
         contentWidth = 0;

@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -72,7 +71,7 @@ public class CellLayout extends ViewGroup {
             final Cell oldCell = manager.findCellByView(oldFocus);
             final Cell newCell = manager.findCellByView(newFocus);
             if (null != oldCell || null != newCell) {
-                new SwitchScaleAction(oldCell, newCell).execute();
+                new SwitchScaleAction(oldFocus, newFocus).execute();
             }
             director.setFocus(newCell);
             keepCellCenter(newCell, true);
@@ -82,22 +81,22 @@ public class CellLayout extends ViewGroup {
     private final CellDirector director = new CellDirector();
     private final ViewManager manager = new ViewManager();
 
-    private Paint holderPaint = new Paint();
-    private Paint focusPaint = new Paint();
-
     private int flag = 0;
 
-    private int focusStokeWidth = 4;
+    private Paint holderPaint = new Paint();
+    private Paint focusPaint = new Paint();
+    private static final int FOCUS_STOKE_WIDTH = 4;
+    private static final boolean FOCUS_HIGHLIGHT = true;
 
     private void init() {
         director.setCallback(manager);
-        setWillNotDraw(false);
+//        setWillNotDraw(false);
         setChildrenDrawingOrderEnabled(true);
 
         holderPaint.setColor(Color.parseColor("#4F586E"));
         focusPaint.setColor(Color.WHITE);
         focusPaint.setStyle(Paint.Style.STROKE);
-        focusPaint.setStrokeWidth(focusStokeWidth);
+        focusPaint.setStrokeWidth(FOCUS_STOKE_WIDTH);
     }
 
     public void setAdapter(ViewAdapter adapter) {
@@ -180,12 +179,15 @@ public class CellLayout extends ViewGroup {
         abstract void onMove(final int dx, final int dy);
     }
 
+    private final static float SCALE_MAX = 1.1f;
+    private final static float SCALE_MIN = 1f;
+
     private final class SwitchScaleAction {
         int sum = 4;
-        final float unit = 0.1f / sum;
-        final Cell zoomIn, zoomOut;
+        final float unit = (SCALE_MAX - SCALE_MIN) / sum;
+        final View zoomIn, zoomOut;
 
-        SwitchScaleAction(Cell zoomIn, Cell zoomOut) {
+        SwitchScaleAction(View zoomIn, View zoomOut) {
             this.zoomIn = zoomIn;
             this.zoomOut = zoomOut;
         }
@@ -196,12 +198,13 @@ public class CellLayout extends ViewGroup {
                 @Override
                 public void run() {
                     if (null != zoomIn) {
-                        zoomIn.scale -= unit;
+                        zoomIn.setScaleX(zoomIn.getScaleX() - unit);
+                        zoomIn.setScaleY(zoomIn.getScaleY() - unit);
                     }
                     if (null != zoomOut) {
-                        zoomOut.scale += unit;
+                        zoomOut.setScaleX(zoomOut.getScaleX() + unit);
+                        zoomOut.setScaleY(zoomOut.getScaleY() + unit);
                     }
-                    invalidate();
                     if (sum-- > 0) {
                         post(this);
                     } else {
@@ -287,17 +290,20 @@ public class CellLayout extends ViewGroup {
         }
 
         private static final int OFFSET = 300;
-        private Cell focused = null;
         private LinearGroup moveGroup;
+        private Cell newFocus = null;
 
         private void prepareLongPress(int orientation) {
-            focused = director.getFocus();
-            if (null == focused) {
+            moveGroup = director.findLinearGroupBy(director.getFocus(), orientation);
+            if (null == moveGroup) {
                 return;
             }
             flag |= FLAG_MOVING_LONG_PRESS;
-            moveGroup = director.findLinearGroupBy(focused, orientation);
-            focused.scale = 1f;
+            final View v = findFocus();
+            if (null != v) {
+                v.setScrollX(1);
+                v.setScrollY(1);
+            }
             // switch focus to root
             setFocusable(true);
             requestFocus();
@@ -311,45 +317,45 @@ public class CellLayout extends ViewGroup {
             if (tmp) {
                 director.onMoveComplete();
             }
-            if (null != focused) {
-                manager.findViewByCell(focused).requestFocus();
+            if (null != newFocus) {
+                final View v = manager.findViewByCell(newFocus);
+                if (null != v) v.requestFocus();
             }
-            focused = null;
+            newFocus = null;
         }
 
         private void findFocusCell(final int keyCode) {
-            if (null == moveGroup || null == focused) {
+            if (null == moveGroup) {
                 return;
             }
-            final Rect oldFocus = new Rect(focused);
-            focused = null;
+            final Rect oldFocus = new Rect(director.getFocus());
             manager.foreachActiveCells(new Filter<Cell>() {
                 @Override
                 public boolean call(Cell cell) {
                     if (moveGroup.contains(cell)) {
                         switch (keyCode) {
                             case KeyEvent.KEYCODE_DPAD_LEFT:
-                                if (null == focused || cell.left < focused.left || (cell.left == focused.left
-                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(focused.centerY() - oldFocus.centerY()))) {
-                                    focused = cell;
+                                if (null == newFocus || cell.left < newFocus.left || (cell.left == newFocus.left
+                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(newFocus.centerY() - oldFocus.centerY()))) {
+                                    newFocus = cell;
                                 }
                                 break;
                             case KeyEvent.KEYCODE_DPAD_UP:
-                                if (null == focused || cell.top < focused.top || (cell.top == focused.top
-                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(focused.centerX() - oldFocus.centerX()))) {
-                                    focused = cell;
+                                if (null == newFocus || cell.top < newFocus.top || (cell.top == newFocus.top
+                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(newFocus.centerX() - oldFocus.centerX()))) {
+                                    newFocus = cell;
                                 }
                                 break;
                             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                                if (null == focused || cell.right > focused.right || (cell.right == focused.right
-                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(focused.centerY() - oldFocus.centerY()))) {
-                                    focused = cell;
+                                if (null == newFocus || cell.right > newFocus.right || (cell.right == newFocus.right
+                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(newFocus.centerY() - oldFocus.centerY()))) {
+                                    newFocus = cell;
                                 }
                                 break;
                             case KeyEvent.KEYCODE_DPAD_DOWN:
-                                if (null == focused || cell.bottom > focused.bottom || (cell.bottom == focused.bottom
-                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(focused.centerX() - oldFocus.centerX()))) {
-                                    focused = cell;
+                                if (null == newFocus || cell.bottom > newFocus.bottom || (cell.bottom == newFocus.bottom
+                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(newFocus.centerX() - oldFocus.centerX()))) {
+                                    newFocus = cell;
                                 }
                                 break;
                         }
@@ -451,7 +457,7 @@ public class CellLayout extends ViewGroup {
 
     @Override
     public void childDrawableStateChanged(View child) {
-        if (!manager.activeCells.isEmpty()) {
+        if (!manager.isEmpty()) {
             invalidate();
         }
         super.childDrawableStateChanged(child);
@@ -461,30 +467,20 @@ public class CellLayout extends ViewGroup {
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         final Cell cell = manager.findCellByView(child);
         if (null != cell) {
-//            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
-            float dw = cell.width() * (cell.scale - 1);
-            float dh = cell.height() * (cell.scale - 1);
-            final RectF rect = new RectF(cell.left, cell.top, cell.right, cell.bottom);
-            rect.left = cell.left - dw / 2 - focusStokeWidth / 2;
-            rect.top = cell.top - dh / 2 - focusStokeWidth / 2;
-            rect.right = cell.right + dw / 2 + focusStokeWidth / 2;
-            rect.bottom = cell.bottom + dh / 2 + focusStokeWidth / 2;
-            canvas.save();
-            canvas.clipRect(rect);
-            if (cell == director.getFocus()) {
-                canvas.translate(rect.left - focusStokeWidth / 2, rect.top - focusStokeWidth / 2);
-                canvas.drawRect(focusStokeWidth, focusStokeWidth, rect.width() - focusStokeWidth, rect.height() - focusStokeWidth, focusPaint);
-                canvas.translate(focusStokeWidth / 2, focusStokeWidth / 2);
-            } else {
-                canvas.translate(rect.left, rect.top);
+            if (FOCUS_HIGHLIGHT && cell == director.getFocus()) {
+                float dw = cell.width() * (child.getScaleX() - 1);
+                float dh = cell.height() * (child.getScaleY() - 1);
+                canvas.save();
+                canvas.translate(cell.left - dw / 2 - FOCUS_STOKE_WIDTH / 2, cell.top - dh / 2 - FOCUS_STOKE_WIDTH / 2);
+                canvas.scale(child.getScaleX(), child.getScaleY());
+                canvas.drawRect(0, 0, cell.width() + FOCUS_STOKE_WIDTH, cell.height() + FOCUS_STOKE_WIDTH, focusPaint);
+                canvas.restore();
             }
-            canvas.scale(cell.scale, cell.scale);
-            child.draw(canvas);
+            canvas.save();
+            canvas.translate(cell.left - child.getLeft(), cell.top - child.getTop());
+            final boolean result = super.drawChild(canvas, child, drawingTime);
             canvas.restore();
-            return false;
-//            } else {
-//                return super.drawChild(canvas, child, drawingTime);
-//            }
+            return result;
         } else {
             return false;
         }
@@ -539,6 +535,10 @@ public class CellLayout extends ViewGroup {
             }
         }
 
+        boolean isEmpty() {
+            return activeCells.isEmpty();
+        }
+
         void foreachActiveCells(Filter<Cell> filter) {
             Collection<Cell> cells = activeCells.keySet();
             for (Cell cell : cells) {
@@ -566,18 +566,6 @@ public class CellLayout extends ViewGroup {
         public void onCellLayout() {
             replaceAllHolder();
             layoutAllContent();
-        }
-
-        @Override
-        public void onMoved(final CellGroup group, final int dx, final int dy) {
-//            final Collection<Map.Entry<Cell, View>> entries = activeCells.entrySet();
-//            for (Map.Entry<Cell, View> entry : entries) {
-//                View v = entry.getValue();
-//                if (null != v && null != group.findCellById(entry.getKey().getId())) {
-//                    v.offsetLeftAndRight(dx);
-//                    v.offsetTopAndBottom(dy);
-//                }
-//            }
         }
 
         @Override

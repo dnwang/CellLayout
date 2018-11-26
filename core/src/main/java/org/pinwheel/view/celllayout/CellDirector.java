@@ -106,7 +106,6 @@ final class CellDirector {
                 return false;
             }
         });
-        onMoved(group, dx, dy);
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
         return true;
     }
@@ -152,12 +151,6 @@ final class CellDirector {
         }
     }
 
-    private void onMoved(CellGroup group, int dx, int dy) {
-        if (null != callback) {
-            callback.onMoved(group, dx, dy);
-        }
-    }
-
     void onMoveComplete() {
         if (null != callback) {
             callback.onMoveComplete();
@@ -178,8 +171,6 @@ final class CellDirector {
 
     interface LifeCycleCallback {
         void onCellLayout();
-
-        void onMoved(CellGroup group, int dx, int dy);
 
         void onVisibleChanged(Cell cell);
 

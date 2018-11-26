@@ -110,7 +110,6 @@ public final class MainActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        cellLayout.keepCellCenter(cellLayout.findCellByView(v), true);
                     }
                 });
                 view.setOnLongClickListener(new View.OnLongClickListener() {

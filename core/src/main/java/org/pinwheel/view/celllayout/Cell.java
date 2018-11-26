@@ -23,7 +23,6 @@ public class Cell extends Rect implements Serializable {
     //
     @Attribute
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
-    public float scale = 1f;
     //
     private int measureWidth, measureHeight;
     //
@@ -114,10 +113,6 @@ public class Cell extends Rect implements Serializable {
 
     public final boolean isVisible() {
         return (state & FLAG_VISIBLE) != 0;
-    }
-
-    public final Rect getRect() {
-        return Rect.copy(this);
     }
 
     @Override
