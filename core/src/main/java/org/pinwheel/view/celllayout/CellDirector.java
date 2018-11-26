@@ -2,9 +2,6 @@ package org.pinwheel.view.celllayout;
 
 import android.util.Log;
 
-import java.util.Collection;
-import java.util.HashSet;
-
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -28,6 +25,7 @@ final class CellDirector {
 
     void setRoot(Cell cell) {
         root = cell;
+        focusCell = null;
     }
 
     Cell getRoot() {
@@ -71,6 +69,16 @@ final class CellDirector {
         }
     }
 
+    private Cell focusCell = null;
+
+    void setFocus(Cell cell) {
+        focusCell = cell;
+    }
+
+    Cell getFocus() {
+        return focusCell;
+    }
+
     boolean scrollBy(final CellGroup group, final int dx, final int dy) {
         if (null == group) return false;
         return scrollTo(group, group.scrollX + dx, group.scrollY + dy);
@@ -87,25 +95,18 @@ final class CellDirector {
         if (0 == dx && 0 == dy) {
             return false;
         }
-        final Collection<Cell> stateChangedCells = new HashSet<>();
         group.foreachAllCells(true, new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
                 if (cell == group) return false; // don't move self
                 cell.offset(dx, dy);
-                boolean stateChanged = setVisibleState(cell);
-                if (stateChanged) {
-                    stateChangedCells.add(cell);
+                if (setVisibleState(cell)) {
+                    onCellVisibleChanged(cell);
                 }
                 return false;
             }
         });
-        // move first
         onMoved(group, dx, dy);
-        // update visible
-        for (Cell cell : stateChangedCells) {
-            onCellVisibleChanged(cell);
-        }
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
         return true;
     }

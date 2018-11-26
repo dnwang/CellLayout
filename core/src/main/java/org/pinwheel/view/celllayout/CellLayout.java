@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -68,12 +69,13 @@ public class CellLayout extends ViewGroup {
     private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
         @Override
         public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            oldFocus = (null != oldFocus && oldFocus.getParent() == CellLayout.this) ? oldFocus : null;
-            newFocus = (null != newFocus && newFocus.getParent() == CellLayout.this) ? newFocus : null;
-            if (null != oldFocus || null != newFocus) {
-//                new SwitchScaleAction(oldFocus, newFocus).execute();
+            final Cell oldCell = manager.findCellByView(oldFocus);
+            final Cell newCell = manager.findCellByView(newFocus);
+            if (null != oldCell || null != newCell) {
+                new SwitchScaleAction(oldCell, newCell).execute();
             }
-            keepCellCenter(manager.findCellByView(newFocus), true);
+            director.setFocus(newCell);
+            keepCellCenter(newCell, true);
         }
     };
 
@@ -81,8 +83,11 @@ public class CellLayout extends ViewGroup {
     private final ViewManager manager = new ViewManager();
 
     private Paint holderPaint = new Paint();
+    private Paint focusPaint = new Paint();
 
     private int flag = 0;
+
+    private int focusStokeWidth = 4;
 
     private void init() {
         director.setCallback(manager);
@@ -90,6 +95,9 @@ public class CellLayout extends ViewGroup {
         setChildrenDrawingOrderEnabled(true);
 
         holderPaint.setColor(Color.parseColor("#4F586E"));
+        focusPaint.setColor(Color.WHITE);
+        focusPaint.setStyle(Paint.Style.STROKE);
+        focusPaint.setStrokeWidth(focusStokeWidth);
     }
 
     public void setAdapter(ViewAdapter adapter) {
@@ -120,8 +128,8 @@ public class CellLayout extends ViewGroup {
         final Cell rect = director.getRoot();
         int dx = rect.centerX() - cell.centerX();
         int dy = rect.centerY() - cell.centerY();
-        dx = Math.abs(dx) < rect.width() / 5 ? 0 : dx;
-        dy = Math.abs(dy) < rect.height() / 5 ? 0 : dy;
+//        dx = Math.abs(dx) < rect.width() / 5 ? 0 : dx;
+//        dy = Math.abs(dy) < rect.height() / 5 ? 0 : dy;
         final LinearGroup vLinear = director.findLinearGroupBy(cell, LinearGroup.VERTICAL);
         final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
@@ -172,41 +180,37 @@ public class CellLayout extends ViewGroup {
         abstract void onMove(final int dx, final int dy);
     }
 
-    private final static float SCALE_MAX = 1.1f;
-    private final static float SCALE_MIN = 1f;
+    private final class SwitchScaleAction {
+        int sum = 4;
+        final float unit = 0.1f / sum;
+        final Cell zoomIn, zoomOut;
 
-//    private final class SwitchScaleAction {
-//        int sum = 4;
-//        final float unit = (SCALE_MAX - SCALE_MIN) / sum;
-//        final View zoomIn, zoomOut;
-//
-//        SwitchScaleAction(View zoomIn, View zoomOut) {
-//            this.zoomIn = zoomIn;
-//            this.zoomOut = zoomOut;
-//        }
-//
-//        final void execute() {
-//            flag |= FLAG_SCALING;
-//            post(new Runnable() {
-//                @Override
-//                public void run() {
-//                    if (null != zoomIn && zoomIn.getScaleX() > SCALE_MIN) {
-//                        zoomIn.setScaleX(zoomIn.getScaleX() - unit);
-//                        zoomIn.setScaleY(zoomIn.getScaleY() - unit);
-//                    }
-//                    if (null != zoomOut && zoomOut.getScaleX() < SCALE_MAX) {
-//                        zoomOut.setScaleX(zoomOut.getScaleX() + unit);
-//                        zoomOut.setScaleY(zoomOut.getScaleY() + unit);
-//                    }
-//                    if (sum-- > 0) {
-//                        post(this);
-//                    } else {
-//                        flag &= ~FLAG_SCALING;
-//                    }
-//                }
-//            });
-//        }
-//    }
+        SwitchScaleAction(Cell zoomIn, Cell zoomOut) {
+            this.zoomIn = zoomIn;
+            this.zoomOut = zoomOut;
+        }
+
+        final void execute() {
+            flag |= FLAG_SCALING;
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != zoomIn) {
+                        zoomIn.scale -= unit;
+                    }
+                    if (null != zoomOut) {
+                        zoomOut.scale += unit;
+                    }
+                    invalidate();
+                    if (sum-- > 0) {
+                        post(this);
+                    } else {
+                        flag &= ~FLAG_SCALING;
+                    }
+                }
+            });
+        }
+    }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
@@ -274,9 +278,11 @@ public class CellLayout extends ViewGroup {
     private final LongKeyPressDirector longKeyPressDirector = new LongKeyPressDirector((Activity) getContext()) {
         @Override
         public boolean interceptLongPress(int keyCode) {
-            return KeyEvent.KEYCODE_DPAD_LEFT == keyCode
-                    || KeyEvent.KEYCODE_DPAD_UP == keyCode
-                    || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+//            return KeyEvent.KEYCODE_DPAD_LEFT == keyCode
+//                    || KeyEvent.KEYCODE_DPAD_UP == keyCode
+//                    || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+//                    || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
+            return KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
                     || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
         }
 
@@ -285,13 +291,13 @@ public class CellLayout extends ViewGroup {
         private LinearGroup moveGroup;
 
         private void prepareLongPress(int orientation) {
-            final View view = findFocus();
-            focused = manager.findCellByView(view);
+            focused = director.getFocus();
             if (null == focused) {
                 return;
             }
             flag |= FLAG_MOVING_LONG_PRESS;
             moveGroup = director.findLinearGroupBy(focused, orientation);
+            focused.scale = 1f;
             // switch focus to root
             setFocusable(true);
             requestFocus();
@@ -455,17 +461,30 @@ public class CellLayout extends ViewGroup {
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         final Cell cell = manager.findCellByView(child);
         if (null != cell) {
-            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
-                // first draw on target position, layout it when move complete!
-                canvas.save();
-                canvas.translate(cell.left, cell.top);
-                child.draw(canvas);
-                canvas.restore();
-                return false;
+//            if ((flag & (FLAG_MOVING_TOUCH | FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO)) != 0) {
+            float dw = cell.width() * (cell.scale - 1);
+            float dh = cell.height() * (cell.scale - 1);
+            final RectF rect = new RectF(cell.left, cell.top, cell.right, cell.bottom);
+            rect.left = cell.left - dw / 2 - focusStokeWidth / 2;
+            rect.top = cell.top - dh / 2 - focusStokeWidth / 2;
+            rect.right = cell.right + dw / 2 + focusStokeWidth / 2;
+            rect.bottom = cell.bottom + dh / 2 + focusStokeWidth / 2;
+            canvas.save();
+            canvas.clipRect(rect);
+            if (cell == director.getFocus()) {
+                canvas.translate(rect.left - focusStokeWidth / 2, rect.top - focusStokeWidth / 2);
+                canvas.drawRect(focusStokeWidth, focusStokeWidth, rect.width() - focusStokeWidth, rect.height() - focusStokeWidth, focusPaint);
+                canvas.translate(focusStokeWidth / 2, focusStokeWidth / 2);
             } else {
-//             super method will be draw child by layout position
-                return super.drawChild(canvas, child, drawingTime);
+                canvas.translate(rect.left, rect.top);
             }
+            canvas.scale(cell.scale, cell.scale);
+            child.draw(canvas);
+            canvas.restore();
+            return false;
+//            } else {
+//                return super.drawChild(canvas, child, drawingTime);
+//            }
         } else {
             return false;
         }

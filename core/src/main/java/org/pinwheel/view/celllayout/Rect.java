@@ -474,8 +474,6 @@ class Rect {
 
     /**
      * Scales up the rect by the given scale.
-     *
-     * @hide
      */
     Rect scale(float scale) {
         if (scale != 1.0f) {

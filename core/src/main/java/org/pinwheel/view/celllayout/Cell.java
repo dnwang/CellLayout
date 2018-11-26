@@ -19,10 +19,11 @@ public class Cell extends Rect implements Serializable {
 
     private static long ID_OFFSET = 0;
     private final long id;
-    private int state;
+    private int state = 0;
     //
     @Attribute
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
+    public float scale = 1f;
     //
     private int measureWidth, measureHeight;
     //
