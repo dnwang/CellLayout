@@ -13,11 +13,9 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -29,7 +27,7 @@ import java.util.Map;
  * @author dnwang
  * @version 2018/11/15,11:21
  */
-public class CellLayout extends ViewGroup {
+public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallback {
     static final String TAG = "CellLayout";
 
     private static final int FLAG_MOVING_LONG_PRESS = 1;
@@ -55,30 +53,18 @@ public class CellLayout extends ViewGroup {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        getViewTreeObserver().addOnGlobalFocusChangeListener(focusListener);
+        Sync.prepare();
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        getViewTreeObserver().removeOnGlobalFocusChangeListener(focusListener);
+        Sync.release();
         super.onDetachedFromWindow();
     }
 
-    private final ViewTreeObserver.OnGlobalFocusChangeListener focusListener = new ViewTreeObserver.OnGlobalFocusChangeListener() {
-        @Override
-        public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-            final Cell oldCell = manager.findCellByView(oldFocus);
-            final Cell newCell = manager.findCellByView(newFocus);
-            if (null != oldCell || null != newCell) {
-                new SwitchScaleAction(oldFocus, newFocus).execute();
-            }
-            director.setFocus(newCell);
-            keepCellCenter(newCell, true);
-        }
-    };
-
     private final CellDirector director = new CellDirector();
-    private final ViewManager manager = new ViewManager();
+    private final ViewManager viewManager = new ViewManager();
+    private final FocusManager focusManager = new FocusManager();
 
     private int flag = 0;
 
@@ -86,9 +72,10 @@ public class CellLayout extends ViewGroup {
     private Paint focusPaint = new Paint();
     private static final int FOCUS_STOKE_WIDTH = 4;
     private static final boolean FOCUS_HIGHLIGHT = true;
+    private static final boolean FOCUS_SCALE = true;
 
     private void init() {
-        director.setCallback(manager);
+        director.setCallback(this);
 //        setWillNotDraw(false);
         setChildrenDrawingOrderEnabled(true);
 
@@ -99,7 +86,7 @@ public class CellLayout extends ViewGroup {
     }
 
     public void setAdapter(ViewAdapter adapter) {
-        manager.setAdapter(adapter);
+        viewManager.setAdapter(adapter);
     }
 
     public void setRoot(Cell root) {
@@ -107,16 +94,12 @@ public class CellLayout extends ViewGroup {
         director.forceLayout();
     }
 
-    public Cell findCellById(int id) {
-        return director.findCellById(id);
-    }
-
     public Cell findCellByView(View v) {
-        return manager.findCellByView(v);
+        return viewManager.findCellByView(v);
     }
 
     public View findViewByCell(Cell cell) {
-        return manager.findViewByCell(cell);
+        return viewManager.findViewByCell(cell);
     }
 
     public void keepCellCenter(Cell cell, boolean withAnimation) {
@@ -176,42 +159,6 @@ public class CellLayout extends ViewGroup {
         }
 
         abstract void onMove(final int dx, final int dy);
-    }
-
-    private final static float SCALE_MAX = 1.1f;
-    private final static float SCALE_MIN = 1f;
-
-    private final class SwitchScaleAction {
-        int sum = 4;
-        final float unit = (SCALE_MAX - SCALE_MIN) / sum;
-        final View zoomIn, zoomOut;
-
-        SwitchScaleAction(View zoomIn, View zoomOut) {
-            this.zoomIn = zoomIn == CellLayout.this ? null : zoomIn;
-            this.zoomOut = zoomOut;
-        }
-
-        final void execute() {
-            flag |= FLAG_SCALING;
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    if (null != zoomIn) {
-                        zoomIn.setScaleX(zoomIn.getScaleX() - unit);
-                        zoomIn.setScaleY(zoomIn.getScaleY() - unit);
-                    }
-                    if (null != zoomOut) {
-                        zoomOut.setScaleX(zoomOut.getScaleX() + unit);
-                        zoomOut.setScaleY(zoomOut.getScaleY() + unit);
-                    }
-                    if (sum-- > 0) {
-                        post(this);
-                    } else {
-                        flag &= ~FLAG_SCALING;
-                    }
-                }
-            });
-        }
     }
 
     @Override
@@ -289,79 +236,35 @@ public class CellLayout extends ViewGroup {
         }
 
         private static final int OFFSET = 300;
-        private Cell focused = null;
         private LinearGroup moveGroup;
 
         private void prepareLongPress(int orientation) {
-            focused = director.getFocus();
-            if (null == focused) {
+            if (!focusManager.hasFocus()) {
                 return;
             }
             flag |= FLAG_MOVING_LONG_PRESS;
-            moveGroup = director.findLinearGroupBy(focused, orientation);
-            // switch focus to root
-            setFocusable(true);
+            moveGroup = director.findLinearGroupBy(focusManager.getFocus(), orientation);
+            scrollDistance = 0;
+            setFocusable(true); // dispatchKeyEvent
             requestFocus();
         }
 
-        private void releaseLongPress(int keyCode) {
-            findFocusCell(keyCode);
+        private void releaseLongPress(int focusDir) {
             moveGroup = null;
             final boolean tmp = (flag & FLAG_MOVING_LONG_PRESS) != 0;
             flag &= ~FLAG_MOVING_LONG_PRESS;
             if (tmp) {
                 director.notifyScrollComplete();
             }
-            if (null != focused) {
-                final View v = manager.findViewByCell(focused);
-                if (null != v) v.requestFocus();
-            }
-            focused = null;
+            focusManager.switchToCell(focusDir, director.getRoot());
+            scrollDistance = 0;
+            clearFocus();
+            setFocusable(false);
         }
 
-        private void findFocusCell(final int keyCode) {
-            if (null == moveGroup || null == focused) {
-                return;
-            }
-            final Rect oldFocus = new Rect(focused);
-            focused = null;
-            manager.foreachActiveCells(new Filter<Cell>() {
-                @Override
-                public boolean call(Cell cell) {
-                    if (moveGroup.contains(cell)) {
-                        switch (keyCode) {
-                            case KeyEvent.KEYCODE_DPAD_LEFT:
-                                if (null == focused || cell.left < focused.left || (cell.left == focused.left
-                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(focused.centerY() - oldFocus.centerY()))) {
-                                    focused = cell;
-                                }
-                                break;
-                            case KeyEvent.KEYCODE_DPAD_UP:
-                                if (null == focused || cell.top < focused.top || (cell.top == focused.top
-                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(focused.centerX() - oldFocus.centerX()))) {
-                                    focused = cell;
-                                }
-                                break;
-                            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                                if (null == focused || cell.right > focused.right || (cell.right == focused.right
-                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(focused.centerY() - oldFocus.centerY()))) {
-                                    focused = cell;
-                                }
-                                break;
-                            case KeyEvent.KEYCODE_DPAD_DOWN:
-                                if (null == focused || cell.bottom > focused.bottom || (cell.bottom == focused.bottom
-                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(focused.centerX() - oldFocus.centerX()))) {
-                                    focused = cell;
-                                }
-                                break;
-                        }
-                    }
-                    return false;
-                }
-            });
-        }
-
+        int scrollDistance = 0;
         boolean intercept = false;
+        int focusDir = 0;
 
         @Override
         public boolean onLongPress(int action, int keyCode) {
@@ -375,29 +278,37 @@ public class CellLayout extends ViewGroup {
                         switch (keyCode) {
                             case KeyEvent.KEYCODE_DPAD_LEFT:
                                 moved = director.scrollBy(moveGroup, OFFSET, 0);
+                                focusDir = View.FOCUS_LEFT;
+                                scrollDistance += OFFSET;
                                 break;
                             case KeyEvent.KEYCODE_DPAD_UP:
                                 moved = director.scrollBy(moveGroup, 0, OFFSET);
+                                focusDir = View.FOCUS_UP;
+                                scrollDistance += OFFSET;
                                 break;
                             case KeyEvent.KEYCODE_DPAD_RIGHT:
                                 moved = director.scrollBy(moveGroup, -OFFSET, 0);
+                                focusDir = View.FOCUS_RIGHT;
+                                scrollDistance += OFFSET;
                                 break;
                             case KeyEvent.KEYCODE_DPAD_DOWN:
                                 moved = director.scrollBy(moveGroup, 0, -OFFSET);
+                                focusDir = View.FOCUS_DOWN;
+                                scrollDistance += OFFSET;
                                 break;
                         }
                         if (moved) {
                             invalidate();
                         } else {
                             // move complete at the bottom
-                            releaseLongPress(keyCode);
+                            releaseLongPress(focusDir);
                             intercept = true;
                         }
                     }
                 }
             } else if (KeyEvent.ACTION_UP == action) {
                 if (!intercept) {
-                    releaseLongPress(keyCode);
+                    releaseLongPress(focusDir);
                 }
                 intercept = false;
             }
@@ -406,6 +317,20 @@ public class CellLayout extends ViewGroup {
 
         @Override
         public boolean onSinglePress(int keyCode) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    focusManager.switchToNearestCell(View.FOCUS_LEFT);
+                    break;
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    focusManager.switchToNearestCell(View.FOCUS_UP);
+                    break;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    focusManager.switchToNearestCell(View.FOCUS_RIGHT);
+                    break;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    focusManager.switchToNearestCell(View.FOCUS_DOWN);
+                    break;
+            }
             return false;
         }
     };
@@ -416,7 +341,7 @@ public class CellLayout extends ViewGroup {
     }
 
     private void drawEmptyHolder(final Canvas canvas) {
-        manager.foreachActiveCells(new Filter<Cell>() {
+        viewManager.foreachActiveCells(new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
                 if (!cell.hasContent()) {
@@ -438,7 +363,7 @@ public class CellLayout extends ViewGroup {
 
     @Override
     protected int getChildDrawingOrder(int childCount, int i) {
-        final View focus = findFocus();
+        final View focus = viewManager.findViewByCell(focusManager.getFocus());
         if (getChildAt(i) == focus) {
             focusOrder = i;
             return childCount - 1;
@@ -453,7 +378,7 @@ public class CellLayout extends ViewGroup {
 
     @Override
     public void childDrawableStateChanged(View child) {
-        if (!manager.isEmpty()) {
+        if (!viewManager.isEmpty()) {
             invalidate();
         }
         super.childDrawableStateChanged(child);
@@ -461,9 +386,9 @@ public class CellLayout extends ViewGroup {
 
     @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-        final Cell cell = manager.findCellByView(child);
+        final Cell cell = viewManager.findCellByView(child);
         if (null != cell) {
-            if (FOCUS_HIGHLIGHT && cell == director.getFocus()) {
+            if (FOCUS_HIGHLIGHT && cell == focusManager.getFocus()) {
                 float dw = cell.width() * (child.getScaleX() - 1);
                 float dh = cell.height() * (child.getScaleY() - 1);
                 canvas.save();
@@ -482,6 +407,34 @@ public class CellLayout extends ViewGroup {
         }
     }
 
+    @Override
+    public void onCellLayout() {
+        viewManager.replaceAllHolder();
+        viewManager.layoutAllContent();
+        // init focus
+        focusManager.setFocus(director.getFirstCell());
+    }
+
+    @Override
+    public void onScroll(CellGroup group, int dx, int dy) {
+    }
+
+    @Override
+    public void onVisibleChanged(Cell cell) {
+        if (cell instanceof CellGroup) return; // don't care group
+        viewManager.onVisibleChanged(cell);
+    }
+
+    @Override
+    public void onScrollComplete() {
+        viewManager.replaceAllHolder();
+        viewManager.layoutAllContent();
+        // recycle should be in last
+        viewManager.checkAndReleaseCache(false);
+
+        viewManager.logInfo();
+    }
+
     public interface ViewAdapter {
         int getViewType(Cell cell);
 
@@ -492,10 +445,10 @@ public class CellLayout extends ViewGroup {
         void onViewRecycled(Cell cell, View view);
     }
 
-    private final class ViewManager implements CellDirector.LifeCycleCallback {
+    private final class ViewManager {
         private ViewAdapter adapter;
         private final SparseArray<ViewPool> poolMap = new SparseArray<>();
-        private final SparseArray<View> activeViews = new SparseArray<>();
+        private final HashMap<Cell, View> activeCells = new HashMap<>();
 
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
@@ -506,12 +459,12 @@ public class CellLayout extends ViewGroup {
             if (force) { // clear all
                 removeAllViewsInLayout();
                 // clear state
-                final Collection<Cell> cells = activeViews.keySet();
+                final Collection<Cell> cells = activeCells.keySet();
                 for (Cell cell : cells) {
                     cell.clearAllState();
                 }
                 // clear reference
-                activeViews.clear();
+                activeCells.clear();
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
                     poolMap.valueAt(i).keepSize(0, null);
@@ -532,23 +485,23 @@ public class CellLayout extends ViewGroup {
         }
 
         boolean isEmpty() {
-            return 0 == activeViews.size();
+            return 0 == activeCells.size();
         }
 
         void foreachActiveCells(Filter<Cell> filter) {
-            Collection<Cell> cells = activeViews.keySet();
+            Collection<Cell> cells = activeCells.keySet();
             for (Cell cell : cells) {
                 filter.call(cell);
             }
         }
 
         View findViewByCell(Cell cell) {
-            return activeViews.get(cell);
+            return activeCells.get(cell);
         }
 
         Cell findCellByView(View view) {
             if (null != view) {
-                Collection<Map.Entry<Cell, View>> entrySet = activeViews.entrySet();
+                Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
                 for (Map.Entry<Cell, View> entry : entrySet) {
                     if (entry.getValue() == view) {
                         return entry.getKey();
@@ -558,27 +511,19 @@ public class CellLayout extends ViewGroup {
             return null;
         }
 
-        @Override
-        public void onCellLayout() {
-            replaceAllHolder();
-            layoutAllContent();
-        }
-
-        @Override
-        public void onVisibleChanged(final Cell cell) {
-            if (cell instanceof CellGroup) return; // don't care group
+        void onVisibleChanged(final Cell cell) {
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
 //                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
-                final View cache = null;
+                final View cache = null;// skip cache measure
                 if (null != cache) {
                     bindContentToCell(cell, cache);
                 } else { // holder
                     cell.setEmpty();
-                    activeViews.put(cell, null);
+                    activeCells.put(cell, null);
                 }
             } else { // remove active view
-                final View v = activeViews.remove(cell);
+                final View v = activeCells.remove(cell);
                 if (cell.hasContent()) {
                     cell.setEmpty();
                     pool.recycle(v);
@@ -587,25 +532,8 @@ public class CellLayout extends ViewGroup {
             }
         }
 
-        @Override
-        public void onScrollComplete() {
-            replaceAllHolder();
-            layoutAllContent();
-            // recycle should be in last
-            checkAndReleaseCache(false);
-
-            // log manager info
-            final int size = poolMap.size();
-            Log.d(TAG, "[into] --------------");
-            for (int i = 0; i < size; i++) {
-                Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
-            }
-            Log.d(TAG, "[into] activeViews size: " + activeViews.size());
-            Log.d(TAG, "[into] --------------");
-        }
-
         private void replaceAllHolder() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeViews.entrySet();
+            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
                 if (!cell.hasContent()) {
@@ -647,73 +575,174 @@ public class CellLayout extends ViewGroup {
             }
             adapter.onBindView(cell, v);
             cell.setHasContent();
-            activeViews.put(cell, v);
+            activeCells.put(cell, v);
         }
 
         private void layoutAllContent() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeViews.entrySet();
+            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
                 entry.getValue().layout(cell.left, cell.top, cell.right, cell.bottom);
             }
         }
+
+        void logInfo() {
+            // log viewManager info
+            final int size = poolMap.size();
+            Log.d(TAG, "[into] --------------");
+            for (int i = 0; i < size; i++) {
+                Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
+            }
+            Log.d(TAG, "[into] activeCells size: " + activeCells.size());
+            Log.d(TAG, "[into] --------------");
+        }
     }
 
-    private static final class ViewPool {
-        private final List<View> caches;
+    private final class FocusManager {
+        private Cell currentFocus = null;
 
-        ViewPool() {
-            caches = new ArrayList<>();
+        boolean hasFocus() {
+            return null != currentFocus;
         }
 
-        int size() {
-            return caches.size();
-        }
-
-        View obtain(Cell cell, boolean force) {
-            if (caches.isEmpty()) {
-                return null;
+        void setFocus(Cell cell) {
+            if (FOCUS_SCALE) {
+                new SwitchScaleAction(viewManager.findViewByCell(currentFocus),
+                        viewManager.findViewByCell(cell)).execute();
             }
-            View view = null;
-            if (null != cell) {
-                for (View v : caches) {
-                    if (v.getMeasuredWidth() == cell.width() && v.getMeasuredHeight() == cell.height()) {
-                        view = v;
-                        break;
+            currentFocus = cell;
+            keepCellCenter(currentFocus, true);
+            invalidate();
+        }
+
+        Cell getFocus() {
+            return currentFocus;
+        }
+
+        void switchToNearestCell(final int dir) {
+            findNextCell(currentFocus, null, dir);
+        }
+
+        void switchToCell(final int dir, Rect area) {
+            findNextCell(currentFocus, area, dir);
+        }
+
+        private void findNextCell(final Cell from, final Rect limitArea, final int dir) {
+            if (null == from || !director.hasRoot()) return;
+            final CellGroup group = (CellGroup) director.getRoot();
+            switch (dir) {
+                case View.FOCUS_LEFT:
+                    if (from.left <= group.left + group.paddingLeft) return;
+                    break;
+                case View.FOCUS_UP:
+                    if (from.top <= group.top + group.paddingTop) return;
+                    break;
+                case View.FOCUS_RIGHT:
+                    if (from.right >= group.right - group.paddingRight) return;
+                    break;
+                case View.FOCUS_DOWN:
+                    if (from.bottom >= group.bottom - group.paddingBottom) return;
+                    break;
+            }
+            // find new focus in group
+            Sync.execute(new Sync.Function<Cell>() {
+                Cell tmp = null;
+
+                @Override
+                public Cell call() {
+                    group.foreachAllCells(false, new Filter<Cell>() {
+                        @Override
+                        public boolean call(Cell cell) {
+                            if (null != limitArea && !limitArea.contains(cell)) {
+                                return false;
+                            }
+                            if (null == tmp) {
+                                tmp = cell;
+                                return false;
+                            }
+                            int newDistance, oldDistance;
+                            switch (dir) {
+                                case View.FOCUS_LEFT:
+                                    newDistance = Math.abs(cell.right - from.left);
+                                    oldDistance = Math.abs(tmp.right - from.left);
+                                    if (newDistance < oldDistance || (newDistance == oldDistance
+                                            && Math.abs(cell.top - from.top) < Math.abs(tmp.top - from.top))) {
+                                        tmp = cell;
+                                    }
+                                    break;
+                                case View.FOCUS_UP:
+                                    newDistance = Math.abs(cell.bottom - from.top);
+                                    oldDistance = Math.abs(tmp.bottom - from.top);
+                                    if (newDistance < oldDistance || (newDistance == oldDistance
+                                            && Math.abs(cell.left - from.left) < Math.abs(tmp.left - from.left))) {
+                                        tmp = cell;
+                                    }
+                                    break;
+                                case View.FOCUS_RIGHT:
+                                    newDistance = Math.abs(cell.left - from.right);
+                                    oldDistance = Math.abs(tmp.left - from.right);
+                                    if (newDistance < oldDistance || (newDistance == oldDistance
+                                            && Math.abs(cell.top - from.top) < Math.abs(tmp.top - from.top))) {
+                                        tmp = cell;
+                                    }
+                                    break;
+                                case View.FOCUS_DOWN:
+                                    newDistance = Math.abs(cell.top - from.bottom);
+                                    oldDistance = Math.abs(tmp.top - from.bottom);
+                                    if (newDistance < oldDistance || (newDistance == oldDistance
+                                            && Math.abs(cell.left - from.left) < Math.abs(tmp.left - from.left))) {
+                                        tmp = cell;
+                                    }
+                                    break;
+                            }
+                            return false;
+                        }
+                    });
+                    return tmp;
+                }
+            }, new Sync.Action<Cell>() {
+                @Override
+                public void call(Cell cell) {
+                    if (null != cell) {
+                        setFocus(cell);
                     }
                 }
-            }
-            if (null != view) {
-                caches.remove(view);
-            } else if (!force) {
-                view = caches.remove(0);
-            }
-            if (null != view) {
-                view.setFocusable(true);
-            }
-            return view;
+            });
         }
 
-        void recycle(final View view) {
-            if (null == view) return;
-            if (caches.contains(view)) {
-                throw new IllegalStateException("Already in the pool!");
-            }
-            view.clearFocus();
-            view.setFocusable(false);
-            view.setScaleX(1f);
-            view.setScaleY(1f);
-            caches.add(view);
-        }
+        private final static float SCALE_MAX = 1.1f;
+        private final static float SCALE_MIN = 1f;
 
-        void keepSize(int size, Filter<View> filter) {
-            size = size < 0 ? 0 : size;
-            final int count = caches.size() - size;
-            for (int i = 0; i < count; i++) {
-                View v = caches.remove(0);
-                if (null != filter) {
-                    filter.call(v);
-                }
+        private final class SwitchScaleAction {
+            int sum = 4;
+            final float unit = (SCALE_MAX - SCALE_MIN) / sum;
+            final View zoomIn, zoomOut;
+
+            SwitchScaleAction(View zoomIn, View zoomOut) {
+                this.zoomIn = zoomIn == CellLayout.this ? null : zoomIn;
+                this.zoomOut = zoomOut;
+            }
+
+            final void execute() {
+                flag |= FLAG_SCALING;
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != zoomIn) {
+                            zoomIn.setScaleX(zoomIn.getScaleX() - unit);
+                            zoomIn.setScaleY(zoomIn.getScaleY() - unit);
+                        }
+                        if (null != zoomOut) {
+                            zoomOut.setScaleX(zoomOut.getScaleX() + unit);
+                            zoomOut.setScaleY(zoomOut.getScaleY() + unit);
+                        }
+                        if (sum-- > 0) {
+                            post(this);
+                        } else {
+                            flag &= ~FLAG_SCALING;
+                        }
+                    }
+                });
             }
         }
     }

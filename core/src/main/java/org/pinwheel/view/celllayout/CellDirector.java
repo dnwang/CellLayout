@@ -2,6 +2,10 @@ package org.pinwheel.view.celllayout;
 
 import android.util.Log;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -25,7 +29,6 @@ final class CellDirector {
 
     void setRoot(Cell cell) {
         root = cell;
-        focusCell = null;
     }
 
     Cell getRoot() {
@@ -36,8 +39,16 @@ final class CellDirector {
         this.callback = callback;
     }
 
-    Cell findCellById(int id) {
-        return hasRoot() ? root.findCellById(id) : null;
+    Cell getFirstCell() {
+        tmp = null;
+        foreachAllCells(false, new Filter<Cell>() {
+            @Override
+            public boolean call(Cell cell) {
+                tmp = cell;
+                return true;
+            }
+        });
+        return tmp;
     }
 
     private Cell tmp = null;
@@ -69,16 +80,6 @@ final class CellDirector {
         }
     }
 
-    private Cell focusCell = null;
-
-    void setFocus(Cell cell) {
-        focusCell = cell;
-    }
-
-    Cell getFocus() {
-        return focusCell;
-    }
-
     boolean scrollBy(final CellGroup group, final int dx, final int dy) {
         if (null == group) return false;
         return scrollTo(group, group.scrollX + dx, group.scrollY + dy);
@@ -106,6 +107,30 @@ final class CellDirector {
                 return false;
             }
         });
+//        Sync.execute(new Sync.Function<Collection<Cell>>() {
+//            @Override
+//            public Collection<Cell> call() {
+//                final Set<Cell> stateChangedCells = new HashSet<>();
+//                group.foreachAllCells(true, new Filter<Cell>() {
+//                    @Override
+//                    public boolean call(Cell cell) {
+//                        if (cell == group) return false;
+//                        if (setVisibleState(cell)) {
+//                            stateChangedCells.add(cell);
+//                        }
+//                        return false;
+//                    }
+//                });
+//                return stateChangedCells;
+//            }
+//        }, new Sync.Action<Collection<Cell>>() {
+//            @Override
+//            public void call(Collection<Cell> stateChangedCells) {
+//                for (Cell cell : stateChangedCells) {
+//                    onCellVisibleChanged(cell);
+//                }
+//            }
+//        });
         onScroll(group, dx, dy);
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
         return true;
@@ -159,6 +184,9 @@ final class CellDirector {
     }
 
     private void onScroll(CellGroup group, int dx, int dy) {
+        if (null != callback) {
+            callback.onScroll(group, dx, dy);
+        }
     }
 
     private void onCellLayout() {
@@ -175,6 +203,8 @@ final class CellDirector {
 
     interface LifeCycleCallback {
         void onCellLayout();
+
+        void onScroll(CellGroup group, int dx, int dy);
 
         void onVisibleChanged(Cell cell);
 
