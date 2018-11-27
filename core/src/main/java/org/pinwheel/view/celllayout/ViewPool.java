@@ -51,6 +51,9 @@ final class ViewPool {
         if (caches.contains(view)) {
             throw new IllegalStateException("Already in the pool!");
         }
+        if (view.hasFocus()) {
+            view.clearFocus();
+        }
         view.setScaleX(1f);
         view.setScaleY(1f);
         caches.add(view);

@@ -62,6 +62,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         super.onDetachedFromWindow();
     }
 
+    private OnScrollListener onScrollListener;
+    private OnCellSelectedListener onCellSelectedListener;
+
     private final CellDirector director = new CellDirector();
     private final ViewManager viewManager = new ViewManager();
 
@@ -89,8 +92,17 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     public void setRoot(Cell root) {
+        viewManager.checkAndReleaseCache(true);
         director.setRoot(root);
         director.forceLayout();
+    }
+
+    public void setOnCellSelectedListener(OnCellSelectedListener onCellSelectedListener) {
+        this.onCellSelectedListener = onCellSelectedListener;
+    }
+
+    public void setOnScrollListener(OnScrollListener onScrollListener) {
+        this.onScrollListener = onScrollListener;
     }
 
     public Cell findCellByView(View v) {
@@ -215,6 +227,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     public void requestChildFocus(View child, View focused) {
         View oldFocus = findFocus();
         oldFocus = CellLayout.this == oldFocus ? null : oldFocus;
+        final Cell oldCell = viewManager.findCellByView(oldFocus);
         final Cell focusCell = viewManager.findCellByView(child);
         if (null != focusCell) {
             final Rect area = new Rect(director.getRoot());
@@ -247,6 +260,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
         if (FOCUS_SCALE && (null != oldFocus || null != child)) {
             new SwitchScaleAction(oldFocus, child).execute();
+        }
+        if ((null != oldCell || null != focusCell) && null != onCellSelectedListener) {
+            onCellSelectedListener.onSelected(oldCell, focusCell);
         }
     }
 
@@ -469,7 +485,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     @Override
     protected int getChildDrawingOrder(int childCount, int i) {
-        if (getChildAt(i).hasFocus()) {
+        if (getChildAt(i) == findFocus()) {
             focusOrder = i;
             return childCount - 1;
         } else {
@@ -494,7 +510,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         final Cell cell = viewManager.findCellByView(child);
         if (null != cell) {
             // cellLayout has focus
-            if (hasFocus() && FOCUS_HIGHLIGHT && child.hasFocus()) {
+            if (hasFocus() && FOCUS_HIGHLIGHT && child == findFocus()) {
                 float dw = cell.width() * (child.getScaleX() - 1);
                 float dh = cell.height() * (child.getScaleY() - 1);
                 canvas.save();
@@ -521,6 +537,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     @Override
     public void onScroll(CellGroup group, int dx, int dy) {
+        if (null != onScrollListener) {
+            onScrollListener.onScroll(group, dx, dy);
+        }
     }
 
     @Override
@@ -535,8 +554,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         viewManager.layoutAllContent();
         // recycle should be in last
         viewManager.checkAndReleaseCache(false);
-
         viewManager.logInfo();
+
+        if (null != onScrollListener) {
+            onScrollListener.onScrollComplete();
+        }
     }
 
     public interface ViewAdapter {
@@ -556,7 +578,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     public interface OnScrollListener {
         void onScroll(CellGroup group, int dx, int dy);
 
-        void onScrollComplete(CellGroup group);
+        void onScrollComplete();
     }
 
     private final class ViewManager {
