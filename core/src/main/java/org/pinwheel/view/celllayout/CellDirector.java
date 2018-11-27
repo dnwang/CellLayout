@@ -2,10 +2,6 @@ package org.pinwheel.view.celllayout;
 
 import android.util.Log;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -37,18 +33,6 @@ final class CellDirector {
 
     void setCallback(LifeCycleCallback callback) {
         this.callback = callback;
-    }
-
-    Cell getFirstCell() {
-        tmp = null;
-        foreachAllCells(false, new Filter<Cell>() {
-            @Override
-            public boolean call(Cell cell) {
-                tmp = cell;
-                return true;
-            }
-        });
-        return tmp;
     }
 
     private Cell tmp = null;

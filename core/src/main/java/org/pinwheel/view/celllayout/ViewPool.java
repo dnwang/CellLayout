@@ -43,9 +43,6 @@ final class ViewPool {
         } else if (!force) {
             view = caches.remove(0);
         }
-        if (null != view) {
-            view.setFocusable(true);
-        }
         return view;
     }
 
@@ -54,8 +51,6 @@ final class ViewPool {
         if (caches.contains(view)) {
             throw new IllegalStateException("Already in the pool!");
         }
-        view.clearFocus();
-        view.setFocusable(false);
         view.setScaleX(1f);
         view.setScaleY(1f);
         caches.add(view);
