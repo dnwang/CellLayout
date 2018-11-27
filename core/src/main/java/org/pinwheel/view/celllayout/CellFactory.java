@@ -2,7 +2,7 @@ package org.pinwheel.view.celllayout;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.util.LongSparseArray;
+import android.util.SparseArray;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -47,7 +47,7 @@ public final class CellFactory {
     }
 
     private static final class DefaultParser implements IParser {
-        private LongSparseArray<Bundle> dataMap;
+        private SparseArray<Bundle> dataMap;
         private Cell root;
 
         @Override
@@ -61,7 +61,7 @@ public final class CellFactory {
         }
 
         @Override
-        public LongSparseArray<Bundle> getDataMap() {
+        public SparseArray<Bundle> getDataMap() {
             return dataMap;
         }
 
@@ -95,7 +95,7 @@ public final class CellFactory {
             return cell;
         }
 
-        private void saveCellData(long cellId, JSONObject json) {
+        private void saveCellData(int cellId, JSONObject json) {
             final Bundle data = (null != json && json.length() > 0) ? new Bundle() : null;
             if (null != data) {
                 Iterator<String> iterable = json.keys();
@@ -113,7 +113,7 @@ public final class CellFactory {
                     }
                 }
                 if (null == dataMap) {
-                    dataMap = new LongSparseArray<>();
+                    dataMap = new SparseArray<>();
                 }
                 dataMap.put(cellId, data);
             }
@@ -166,7 +166,7 @@ public final class CellFactory {
     private static void foreachAllField(Class cls, Filter<Field> filter) {
         do {
             Field fields[] = cls.getDeclaredFields();
-            if (null != fields && fields.length > 0) {
+            if (fields.length > 0) {
                 for (Field f : fields) {
                     if (filter.call(f)) {
                         break;
@@ -179,16 +179,16 @@ public final class CellFactory {
     private interface IParser {
         void parse(JSONObject json) throws JSONException;
 
-        LongSparseArray<Bundle> getDataMap();
+        SparseArray<Bundle> getDataMap();
 
         Cell getRoot();
     }
 
     public static final class CellBundle {
         public final Cell root;
-        public final LongSparseArray<Bundle> dataMap;
+        public final SparseArray<Bundle> dataMap;
 
-        CellBundle(Cell root, LongSparseArray<Bundle> dataMap) {
+        CellBundle(Cell root, SparseArray<Bundle> dataMap) {
             this.root = root;
             this.dataMap = dataMap;
         }

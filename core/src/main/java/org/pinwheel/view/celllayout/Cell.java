@@ -17,8 +17,8 @@ public class Cell extends Rect implements Serializable {
     // 0: empty, 1: content view
     private static final int FLAG_HAS_CONTENT = FLAG_VISIBLE << 1;
 
-    private static long ID_OFFSET = 0;
-    private final long id;
+    private static int ID_OFFSET = 0;
+    private final int id;
     private int state = 0;
     //
     @Attribute
@@ -71,11 +71,11 @@ public class Cell extends Rect implements Serializable {
         }
     }
 
-    public final long getId() {
+    public final int getId() {
         return id;
     }
 
-    public Cell findCellById(long id) {
+    public Cell findCellById(int id) {
         return getId() == id ? this : null;
     }
 

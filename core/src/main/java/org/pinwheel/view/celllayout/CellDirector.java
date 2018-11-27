@@ -36,7 +36,7 @@ final class CellDirector {
         this.callback = callback;
     }
 
-    Cell findCellById(long id) {
+    Cell findCellById(int id) {
         return hasRoot() ? root.findCellById(id) : null;
     }
 
@@ -106,6 +106,7 @@ final class CellDirector {
                 return false;
             }
         });
+        onScroll(group, dx, dy);
         Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
         return true;
     }
@@ -135,6 +136,12 @@ final class CellDirector {
         }
     }
 
+    void notifyScrollComplete() {
+        if (null != callback) {
+            callback.onScrollComplete();
+        }
+    }
+
     private boolean setVisibleState(Cell cell) {
         final boolean oldState = cell.isVisible();
         cell.setVisible(Rect.intersects(root, cell));
@@ -151,10 +158,7 @@ final class CellDirector {
         }
     }
 
-    void onMoveComplete() {
-        if (null != callback) {
-            callback.onMoveComplete();
-        }
+    private void onScroll(CellGroup group, int dx, int dy) {
     }
 
     private void onCellLayout() {
@@ -174,7 +178,7 @@ final class CellDirector {
 
         void onVisibleChanged(Cell cell);
 
-        void onMoveComplete();
+        void onScrollComplete();
     }
 
 }

@@ -1,6 +1,6 @@
 package org.pinwheel.view.celllayout;
 
-import android.util.LongSparseArray;
+import android.util.SparseArray;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class CellGroup extends Cell {
 
     private final List<Cell> subCells = new ArrayList<>();
     // all cell cache
-    private final LongSparseArray<Cell> allCellCache = new LongSparseArray<>(); // contains self
+    private final SparseArray<Cell> allCellCache = new SparseArray<>(); // contains self
 
     CellGroup() {
         super();
@@ -34,7 +34,7 @@ public class CellGroup extends Cell {
     }
 
     public void addCell(Cell cell, Params p) {
-        final long id = null == cell ? -1 : cell.getId();
+        final int id = null == cell ? -1 : cell.getId();
         if (id <= 0) {
             throw new IllegalStateException("cell id error !");
         }
@@ -80,7 +80,7 @@ public class CellGroup extends Cell {
     }
 
     @Override
-    public Cell findCellById(long cellId) {
+    public Cell findCellById(int cellId) {
         if (0 != allCellCache.size()) {
             return allCellCache.get(cellId);
         } else {

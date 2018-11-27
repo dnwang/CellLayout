@@ -3,7 +3,7 @@ package org.pinwheel.demo;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.LongSparseArray;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 
@@ -29,7 +29,7 @@ import java.io.IOException;
 public final class MainActivity extends Activity {
 
     private CellLayout cellLayout;
-    private LongSparseArray<Bundle> cellDataMap;
+    private SparseArray<Bundle> cellDataMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,7 +95,7 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onBindView(final Cell cell, View view) {
-                final long cellId = cell.getId();
+                final int cellId = cell.getId();
                 final Bundle data = cellDataMap.get(cellId);
                 final String title = null == data ? String.valueOf(cellId) : data.getString("title");
                 final ViewHolder holder = (ViewHolder) view.getTag();

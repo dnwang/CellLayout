@@ -17,7 +17,6 @@ import android.view.ViewTreeObserver;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -108,7 +107,7 @@ public class CellLayout extends ViewGroup {
         director.forceLayout();
     }
 
-    public Cell findCellById(long id) {
+    public Cell findCellById(int id) {
         return director.findCellById(id);
     }
 
@@ -134,7 +133,7 @@ public class CellLayout extends ViewGroup {
         if (!withAnimation || (Math.abs(dx) + Math.abs(dy) < 10)) {
             if (director.scrollBy(vLinear, 0, dy) | director.scrollBy(hLinear, dx, 0)) {
                 invalidate();
-                director.onMoveComplete();
+                director.notifyScrollComplete();
             }
         } else {
             new AutoMovingAction(dx, dy) {
@@ -170,7 +169,7 @@ public class CellLayout extends ViewGroup {
                         post(this);
                     } else {
                         flag &= ~FLAG_MOVING_AUTO;
-                        director.onMoveComplete();
+                        director.notifyScrollComplete();
                     }
                 }
             });
@@ -188,7 +187,7 @@ public class CellLayout extends ViewGroup {
         final View zoomIn, zoomOut;
 
         SwitchScaleAction(View zoomIn, View zoomOut) {
-            this.zoomIn = zoomIn;
+            this.zoomIn = zoomIn == CellLayout.this ? null : zoomIn;
             this.zoomOut = zoomOut;
         }
 
@@ -258,7 +257,7 @@ public class CellLayout extends ViewGroup {
                 touchCell = null;
                 flag &= ~FLAG_MOVING_TOUCH;
                 if (tmp) {
-                    director.onMoveComplete();
+                    director.notifyScrollComplete();
                 }
                 getParent().requestDisallowInterceptTouchEvent(false);
                 return superState;
@@ -285,25 +284,21 @@ public class CellLayout extends ViewGroup {
 //                    || KeyEvent.KEYCODE_DPAD_UP == keyCode
 //                    || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
 //                    || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
-            return KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+            return KeyEvent.KEYCODE_DPAD_UP == keyCode
                     || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
         }
 
         private static final int OFFSET = 300;
+        private Cell focused = null;
         private LinearGroup moveGroup;
-        private Cell newFocus = null;
 
         private void prepareLongPress(int orientation) {
-            moveGroup = director.findLinearGroupBy(director.getFocus(), orientation);
-            if (null == moveGroup) {
+            focused = director.getFocus();
+            if (null == focused) {
                 return;
             }
             flag |= FLAG_MOVING_LONG_PRESS;
-            final View v = findFocus();
-            if (null != v) {
-                v.setScrollX(1);
-                v.setScrollY(1);
-            }
+            moveGroup = director.findLinearGroupBy(focused, orientation);
             // switch focus to root
             setFocusable(true);
             requestFocus();
@@ -315,47 +310,48 @@ public class CellLayout extends ViewGroup {
             final boolean tmp = (flag & FLAG_MOVING_LONG_PRESS) != 0;
             flag &= ~FLAG_MOVING_LONG_PRESS;
             if (tmp) {
-                director.onMoveComplete();
+                director.notifyScrollComplete();
             }
-            if (null != newFocus) {
-                final View v = manager.findViewByCell(newFocus);
+            if (null != focused) {
+                final View v = manager.findViewByCell(focused);
                 if (null != v) v.requestFocus();
             }
-            newFocus = null;
+            focused = null;
         }
 
         private void findFocusCell(final int keyCode) {
-            if (null == moveGroup) {
+            if (null == moveGroup || null == focused) {
                 return;
             }
-            final Rect oldFocus = new Rect(director.getFocus());
+            final Rect oldFocus = new Rect(focused);
+            focused = null;
             manager.foreachActiveCells(new Filter<Cell>() {
                 @Override
                 public boolean call(Cell cell) {
                     if (moveGroup.contains(cell)) {
                         switch (keyCode) {
                             case KeyEvent.KEYCODE_DPAD_LEFT:
-                                if (null == newFocus || cell.left < newFocus.left || (cell.left == newFocus.left
-                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(newFocus.centerY() - oldFocus.centerY()))) {
-                                    newFocus = cell;
+                                if (null == focused || cell.left < focused.left || (cell.left == focused.left
+                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(focused.centerY() - oldFocus.centerY()))) {
+                                    focused = cell;
                                 }
                                 break;
                             case KeyEvent.KEYCODE_DPAD_UP:
-                                if (null == newFocus || cell.top < newFocus.top || (cell.top == newFocus.top
-                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(newFocus.centerX() - oldFocus.centerX()))) {
-                                    newFocus = cell;
+                                if (null == focused || cell.top < focused.top || (cell.top == focused.top
+                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(focused.centerX() - oldFocus.centerX()))) {
+                                    focused = cell;
                                 }
                                 break;
                             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                                if (null == newFocus || cell.right > newFocus.right || (cell.right == newFocus.right
-                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(newFocus.centerY() - oldFocus.centerY()))) {
-                                    newFocus = cell;
+                                if (null == focused || cell.right > focused.right || (cell.right == focused.right
+                                        && Math.abs(cell.centerY() - oldFocus.centerY()) < Math.abs(focused.centerY() - oldFocus.centerY()))) {
+                                    focused = cell;
                                 }
                                 break;
                             case KeyEvent.KEYCODE_DPAD_DOWN:
-                                if (null == newFocus || cell.bottom > newFocus.bottom || (cell.bottom == newFocus.bottom
-                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(newFocus.centerX() - oldFocus.centerX()))) {
-                                    newFocus = cell;
+                                if (null == focused || cell.bottom > focused.bottom || (cell.bottom == focused.bottom
+                                        && Math.abs(cell.centerX() - oldFocus.centerX()) < Math.abs(focused.centerX() - oldFocus.centerX()))) {
+                                    focused = cell;
                                 }
                                 break;
                         }
@@ -499,7 +495,7 @@ public class CellLayout extends ViewGroup {
     private final class ViewManager implements CellDirector.LifeCycleCallback {
         private ViewAdapter adapter;
         private final SparseArray<ViewPool> poolMap = new SparseArray<>();
-        private final HashMap<Cell, View> activeCells = new HashMap<>();
+        private final SparseArray<View> activeViews = new SparseArray<>();
 
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
@@ -510,12 +506,12 @@ public class CellLayout extends ViewGroup {
             if (force) { // clear all
                 removeAllViewsInLayout();
                 // clear state
-                final Collection<Cell> cells = activeCells.keySet();
+                final Collection<Cell> cells = activeViews.keySet();
                 for (Cell cell : cells) {
                     cell.clearAllState();
                 }
                 // clear reference
-                activeCells.clear();
+                activeViews.clear();
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
                     poolMap.valueAt(i).keepSize(0, null);
@@ -536,23 +532,23 @@ public class CellLayout extends ViewGroup {
         }
 
         boolean isEmpty() {
-            return activeCells.isEmpty();
+            return 0 == activeViews.size();
         }
 
         void foreachActiveCells(Filter<Cell> filter) {
-            Collection<Cell> cells = activeCells.keySet();
+            Collection<Cell> cells = activeViews.keySet();
             for (Cell cell : cells) {
                 filter.call(cell);
             }
         }
 
         View findViewByCell(Cell cell) {
-            return activeCells.get(cell);
+            return activeViews.get(cell);
         }
 
         Cell findCellByView(View view) {
             if (null != view) {
-                Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
+                Collection<Map.Entry<Cell, View>> entrySet = activeViews.entrySet();
                 for (Map.Entry<Cell, View> entry : entrySet) {
                     if (entry.getValue() == view) {
                         return entry.getKey();
@@ -579,10 +575,10 @@ public class CellLayout extends ViewGroup {
                     bindContentToCell(cell, cache);
                 } else { // holder
                     cell.setEmpty();
-                    activeCells.put(cell, null);
+                    activeViews.put(cell, null);
                 }
             } else { // remove active view
-                final View v = activeCells.remove(cell);
+                final View v = activeViews.remove(cell);
                 if (cell.hasContent()) {
                     cell.setEmpty();
                     pool.recycle(v);
@@ -592,7 +588,7 @@ public class CellLayout extends ViewGroup {
         }
 
         @Override
-        public void onMoveComplete() {
+        public void onScrollComplete() {
             replaceAllHolder();
             layoutAllContent();
             // recycle should be in last
@@ -604,12 +600,12 @@ public class CellLayout extends ViewGroup {
             for (int i = 0; i < size; i++) {
                 Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
             }
-            Log.d(TAG, "[into] activeCells size: " + activeCells.size());
+            Log.d(TAG, "[into] activeViews size: " + activeViews.size());
             Log.d(TAG, "[into] --------------");
         }
 
         private void replaceAllHolder() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
+            final Collection<Map.Entry<Cell, View>> entrySet = activeViews.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
                 if (!cell.hasContent()) {
@@ -651,11 +647,11 @@ public class CellLayout extends ViewGroup {
             }
             adapter.onBindView(cell, v);
             cell.setHasContent();
-            activeCells.put(cell, v);
+            activeViews.put(cell, v);
         }
 
         private void layoutAllContent() {
-            final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
+            final Collection<Map.Entry<Cell, View>> entrySet = activeViews.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
                 entry.getValue().layout(cell.left, cell.top, cell.right, cell.bottom);
