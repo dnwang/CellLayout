@@ -165,6 +165,8 @@ public class CellGroup extends Cell {
     }
 
     public static class Params implements Serializable {
+        @Attribute("style")
+        public int styleId = 0;
         @Attribute
         public int width, height;
         @Attribute

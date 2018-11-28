@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "root": {
+    "type": "linear",
+    "divider": 10,
+    "padding": 80,
+    "orientation": 1,
+    "cells": [
+      {
+        "style": 1,
+        "height": 100,
+        "data":{
+          "title":"热门推荐"
+        }
+      },
+      {
+        "type": "grid",
+        "height": 800,
+        "row": 2,
+        "column": 2,
+        "divider":20,
+        "cells": [
+          {
+            "style": 2,
+            "x": 0,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "刘三姐",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543402925964&di=5ab23d3c24deba6fb7b7cc43e73c600d&imgtype=0&src=http%3A%2F%2Fuploads.xuexila.com%2Fallimg%2F1708%2F45-1FS11R034.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 0,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "电影1",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543402854894&di=e00f46029fccc92b0ac7671c8f2a41ae&imgtype=0&src=http%3A%2F%2Fimgsrc.baidu.com%2Fimage%2Fc0%253Dshijue1%252C0%252C0%252C294%252C40%2Fsign%3Db465d2a151b5c9ea76fe0ba0bd50dc75%2F14ce36d3d539b600ba0deb1de350352ac75cb75d.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 1,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "电影电影电影",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543402872437&di=31d6e8af4f952476b5e9c52a990f9479&imgtype=0&src=http%3A%2F%2Fimgsrc.baidu.com%2Fimage%2Fc0%253Dshijue1%252C0%252C0%252C294%252C40%2Fsign%3D3f59567f953df8dcb23087d2a57818fe%2Fd000baa1cd11728b0886d4aac2fcc3cec2fd2c8a.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 1,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "描述描述",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543402892845&di=354b3ffad31340d9dc30a7acfa03f7e4&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2Fa626307fa2072afb0aa3d409b5af0d9a87219f0b.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

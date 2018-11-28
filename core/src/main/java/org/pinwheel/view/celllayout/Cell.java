@@ -56,6 +56,13 @@ public class Cell extends Rect implements Serializable {
         return measureHeight;
     }
 
+    public void setPadding(int paddingLeft, int paddingTop, int paddingRight, int paddingBottom) {
+        this.paddingLeft = paddingLeft;
+        this.paddingTop = paddingTop;
+        this.paddingRight = paddingRight;
+        this.paddingBottom = paddingBottom;
+    }
+
     protected final void setParams(CellGroup.Params p) {
         this.p = p;
     }

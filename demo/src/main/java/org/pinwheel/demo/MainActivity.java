@@ -1,21 +1,30 @@
 package org.pinwheel.demo;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.res.AssetManager;
+import android.content.res.XmlResourceParser;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
-import org.pinwheel.agility2.view.ViewHolder;
 import org.pinwheel.view.celllayout.Cell;
 import org.pinwheel.view.celllayout.CellFactory;
 import org.pinwheel.view.celllayout.CellGroup;
 import org.pinwheel.view.celllayout.CellLayout;
+import org.pinwheel.view.celllayout.LinearGroup;
+import org.pinwheel.view.celllayout.StyleAdapter;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 /**
  * Copyright (C), 2018 <br>
@@ -29,7 +38,7 @@ import java.io.IOException;
 public final class MainActivity extends Activity {
 
     private CellLayout cellLayout;
-    private SparseArray<Bundle> cellDataMap;
+    private SparseArray<Bundle> dataMaps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,109 +46,130 @@ public final class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         cellLayout = findViewById(R.id.cell_layout);
         initCellLayout();
-        loadLayout();
+//        loadSingle();
+        loadGroup();
     }
 
-    private void loadLayout() {
-        Cell root = null;
+    private void loadSingle() {
         try {
-            for (int i = 0; i < 10; i++) {
-                CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
-                if (null == root) {
-                    root = bundle.root;
-                } else {
-                    CellGroup group = (CellGroup) bundle.root;
-                    int size = group.getCellCount();
-                    while (size > 0) {
-                        Cell cell = group.getCellAt(0);
-                        cell.removeFromParent();
-                        ((CellGroup) root).addCell(cell, cell.getParams());
-                        size--;
-                    }
-                }
-                if (null == cellDataMap) {
-                    cellDataMap = bundle.dataMap;
-                } else {
-                    int size = bundle.dataMap.size();
-                    for (int j = 0; j < size; j++) {
-                        cellDataMap.put(bundle.dataMap.keyAt(j), bundle.dataMap.valueAt(j));
-                    }
-                }
-            }
-        } catch (IOException | JSONException e) {
+            CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
+            dataMaps = bundle.dataMap;
+            cellLayout.setRoot(bundle.root);
+        } catch (JSONException e) {
             e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadGroup() {
+        dataMaps = new SparseArray<>();
+        final LinearGroup root = new LinearGroup(LinearGroup.VERTICAL);
+        root.setDivider(20);
+        root.setPadding(80, 80, 80, 80);
+        final String[] groupNames = new String[]{
+                "group_1.json",
+                "group_2.json",
+                "group_2.json",
+                "group_1.json",
+                "group_2.json",
+                "group_2.json",
+        };
+        for (String groupName : groupNames) {
+            try {
+                CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open(groupName)));
+                CellGroup group = (CellGroup) bundle.root;
+                int size = group.getCellCount();
+                while (size > 0) {
+                    Cell cell = group.getCellAt(0);
+                    cell.removeFromParent();
+                    root.addCell(cell, cell.getParams());
+                    size--;
+                }
+                size = bundle.dataMap.size();
+                for (int i = 0; i < size; i++) {
+                    dataMaps.put(bundle.dataMap.keyAt(i), bundle.dataMap.valueAt(i));
+                }
+            } catch (JSONException | IOException e) {
+                e.printStackTrace();
+            }
         }
         cellLayout.setRoot(root);
     }
 
+    private final StyleAdapter adapter = new StyleAdapter()
+            .addStyle(new StyleAdapter.Style(R.layout.item_style_movie) {
+                @Override
+                public void onBind(Cell cell, StyleAdapter.Holder holder) {
+                    final Bundle args = dataMaps.get(cell.getId());
+                    final TextView text = holder.get(R.id.desc);
+                    final ImageView image = holder.get(R.id.image);
+                    final String title = null != args ? args.getString("title") : "";
+                    final String posterUrl = null != args ? args.getString("poster") : null;
+                    text.setText(title);
+//                    image.setImageResource(RES_IMG[(int) (Math.random() * RES_IMG.length)]);
+                    BitmapLoader.INSTANCE.display(image, posterUrl);
+                }
+            })
+            .addStyle(2, new StyleAdapter.Style(R.layout.item_style_poster) {
+                @Override
+                public void onBind(Cell cell, StyleAdapter.Holder holder) {
+                    final Bundle args = dataMaps.get(cell.getId());
+                    final String posterUrl = null != args ? args.getString("poster") : null;
+                    BitmapLoader.INSTANCE.display((ImageView) holder.get(R.id.image), posterUrl);
+                }
+            })
+            .addStyle(1, new StyleAdapter.Style(R.layout.item_style_title) {
+                @Override
+                public void onBind(Cell cell, StyleAdapter.Holder holder) {
+                    final Bundle args = dataMaps.get(cell.getId());
+                    final String title = null != args ? args.getString("title") : "";
+                    TextView text = (TextView) holder.view;
+                    text.setText(title);
+                }
+            });
+
     private void initCellLayout() {
-        cellLayout.setAdapter(new CellLayout.ViewAdapter() {
+        cellLayout.setAdapter(adapter);
+        cellLayout.setOnCellSelectedListener(new CellLayout.OnCellSelectedListener() {
             @Override
-            public int getViewType(Cell cell) {
-                final Bundle data = cellDataMap.get(cell.getId());
-                return (null == data) ? 0 : data.getInt("style", 0);
+            public void onSelected(Cell oldCell, Cell newCell) {
+
+            }
+        });
+        cellLayout.setOnScrollListener(new CellLayout.OnScrollListener() {
+            @Override
+            public void onScroll(CellGroup group, int dx, int dy) {
+
             }
 
             @Override
-            public View onCreateView(Cell cell) {
-                final int id;
-                if (getViewType(cell) > 0) {
-                    id = R.layout.item_style_0;
-                } else {
-                    id = R.layout.item_style_1;
-                }
-                final View view = LayoutInflater.from(MainActivity.this).inflate(id, cellLayout, false);
-                view.setTag(new ViewHolder(view));
-                return view;
-            }
+            public void onScrollComplete() {
 
-            @Override
-            public void onBindView(final Cell cell, View view) {
-                final int cellId = cell.getId();
-                final Bundle data = cellDataMap.get(cellId);
-                final String title = null == data ? String.valueOf(cellId) : data.getString("title");
-                final ViewHolder holder = (ViewHolder) view.getTag();
-                if (getViewType(cell) > 0) {
-                    holder.getTextView(R.id.text1).setText(title);
-                    holder.getTextView(R.id.text2).setText(String.valueOf(cellId));
-                    holder.getImageView(R.id.image).setImageResource(R.mipmap.ic_launcher);
-                } else {
-                    holder.getTextView(R.id.text1).setText(title);
-                    holder.getImageView(R.id.image).setImageResource(RES_IMG[(int) (Math.random() * RES_IMG.length)]);
-                }
-                view.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                    }
-                });
-                view.setOnLongClickListener(new View.OnLongClickListener() {
-                    @Override
-                    public boolean onLongClick(View v) {
-                        cellLayout.keepCellCenter(cellLayout.findCellByView(v), false);
-                        return true;
-                    }
-                });
-            }
-
-            @Override
-            public void onViewRecycled(Cell cell, View view) {
-                final ViewHolder holder = (ViewHolder) view.getTag();
-                holder.getImageView(R.id.image).setImageResource(0);
             }
         });
     }
-
-    final int[] RES_IMG = new int[]{
-            R.mipmap.poster_1,
-            R.mipmap.poster_2,
-            R.mipmap.poster_3,
-            R.mipmap.poster_4
-    };
 
     private static int getColor() {
         return Color.rgb((int) (Math.random() * 255),
                 (int) (Math.random() * 255),
                 (int) (Math.random() * 255));
     }
+
+
+    private static View loadLayout(Context ctx, File file) {
+        try {
+            AssetManager am = ctx.getResources().getAssets();
+            final Method m = AssetManager.class.getMethod("addAssetPath", String.class);
+            m.setAccessible(true);
+            int cookie = (int) m.invoke(am, Environment.getExternalStorageDirectory().getAbsolutePath());
+            XmlResourceParser parser = am.openXmlResourceParser(cookie, file.getAbsolutePath());
+            return LayoutInflater.from(ctx).inflate(parser, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
 }

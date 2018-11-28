@@ -29,6 +29,10 @@ public class LinearGroup extends CellGroup {
         this.divider = 0;
     }
 
+    public void setDivider(int divider) {
+        this.divider = divider;
+    }
+
     @Override
     public CellGroup.Params getDefaultParams() {
         return new LinearGroup.Params();

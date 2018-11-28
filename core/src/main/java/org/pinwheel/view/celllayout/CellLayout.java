@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -87,6 +88,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     public void setAdapter(ViewAdapter adapter) {
+        if (adapter instanceof StyleAdapter) {
+            ((StyleAdapter) adapter).inflater = LayoutInflater.from(getContext());
+        }
         viewManager.setAdapter(adapter);
     }
 

@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="org.pinwheel.demo">
 
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="CellLayout"

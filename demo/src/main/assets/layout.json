@@ -43,13 +43,13 @@
             "rowCount": 1
           },
           {
+            "style": 1,
             "x": 1,
             "y": 0,
             "marginLeft": 10,
             "columnCount": 4,
             "rowCount": 4,
             "data": {
-              "style": 1,
               "title": "iii"
             }
           }
@@ -137,13 +137,13 @@
         "height": 400,
         "cells": [
           {
+            "style": 1,
             "x": 0,
             "y": 0,
             "columnCount": 3,
             "rowCount": 2,
             "data": {
-              "title": "qqq",
-              "style": 1
+              "title": "qqq"
             }
           },
           {
