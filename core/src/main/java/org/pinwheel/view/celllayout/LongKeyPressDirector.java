@@ -1,6 +1,5 @@
 package org.pinwheel.view.celllayout;
 
-import android.app.Activity;
 import android.view.FocusFinder;
 import android.view.KeyEvent;
 import android.view.View;
@@ -23,11 +22,11 @@ abstract class LongKeyPressDirector {
 
     public abstract boolean onSinglePress(final int keyCode);
 
-    private Activity target;
+    private View target;
     private boolean onKeyLongPress = false;
 
-    LongKeyPressDirector(Activity target) {
-        this.target = target;
+    LongKeyPressDirector(View view) {
+        this.target = view;
     }
 
     private long downTime = -1;
@@ -80,7 +79,7 @@ abstract class LongKeyPressDirector {
                 break;
         }
         if (0 != direction) {
-            final View mView = this.target.getWindow().getDecorView();
+            final View mView = this.target.getRootView();
             final View focused = mView.findFocus();
             View v = FocusFinder.getInstance().findNextFocus((ViewGroup) mView, focused, direction);
             if (v != null) {

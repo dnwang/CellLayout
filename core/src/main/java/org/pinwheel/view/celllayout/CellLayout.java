@@ -1,6 +1,5 @@
 package org.pinwheel.view.celllayout;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -231,16 +230,18 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         final Cell focusCell = viewManager.findCellByView(child);
         if (null != focusCell) {
             final Rect area = new Rect(director.getRoot());
+            final int wSpace = area.width() / 5;
+            final int hSpace = area.height() / 5;
             int dx = 0, dy = 0;
-            if (focusCell.left < area.left) {
-                dx = area.left - focusCell.left;
-            } else if (focusCell.right > area.right) {
-                dx = area.right - focusCell.right;
+            if (focusCell.left < (area.left + wSpace)) {
+                dx = (area.left + wSpace) - focusCell.left;
+            } else if (focusCell.right > (area.right - wSpace)) {
+                dx = (area.right - wSpace) - focusCell.right;
             }
-            if (focusCell.top < area.top) {
-                dy = area.top - focusCell.top;
-            } else if (focusCell.bottom > area.bottom) {
-                dy = area.bottom - focusCell.bottom;
+            if (focusCell.top < (area.top + hSpace)) {
+                dy = (area.top + hSpace) - focusCell.top;
+            } else if (focusCell.bottom > (area.bottom - hSpace)) {
+                dy = (area.bottom - hSpace) - focusCell.bottom;
             }
             if (0 != dx || 0 != dy) {
                 final LinearGroup vLinear = director.findLinearGroupBy(focusCell, LinearGroup.VERTICAL);
@@ -322,7 +323,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    private final LongKeyPressDirector longKeyPressDirector = new LongKeyPressDirector((Activity) getContext()) {
+    private final LongKeyPressDirector longKeyPressDirector = new LongKeyPressDirector(this) {
         @Override
         public boolean interceptLongPress(int keyCode) {
 //            return KeyEvent.KEYCODE_DPAD_LEFT == keyCode

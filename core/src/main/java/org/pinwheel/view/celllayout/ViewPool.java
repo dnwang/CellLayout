@@ -15,7 +15,9 @@ import java.util.List;
  * @version 2018/11/27,9:50
  */
 final class ViewPool {
-    private final List<View> caches;
+    private int FLAG_FOCUSABLE = 1;
+
+    private final List<Holder> caches;
 
     ViewPool() {
         caches = new ArrayList<>();
@@ -25,48 +27,75 @@ final class ViewPool {
         return caches.size();
     }
 
+    View obtain() {
+        return obtain(null, false);
+    }
+
     View obtain(Cell cell, boolean force) {
         if (caches.isEmpty()) {
             return null;
         }
-        View view = null;
+        Holder holder = null;
         if (null != cell) {
-            for (View v : caches) {
+            for (Holder h : caches) {
+                View v = h.view;
                 if (v.getMeasuredWidth() == cell.width() && v.getMeasuredHeight() == cell.height()) {
-                    view = v;
+                    holder = h;
                     break;
                 }
             }
         }
-        if (null != view) {
-            caches.remove(view);
+        if (null != holder) {
+            caches.remove(holder);
         } else if (!force) {
-            view = caches.remove(0);
+            holder = caches.remove(0);
         }
-        return view;
+        if (null != holder) {
+            // restore state
+            holder.view.setFocusable((holder.state & FLAG_FOCUSABLE) != 0);
+            return holder.view;
+        } else {
+            return null;
+        }
     }
 
     void recycle(final View view) {
         if (null == view) return;
-        if (caches.contains(view)) {
-            throw new IllegalStateException("Already in the pool!");
-        }
         if (view.hasFocus()) {
             view.clearFocus();
         }
         view.setScaleX(1f);
         view.setScaleY(1f);
-        caches.add(view);
+        final Holder holder = new Holder();
+        holder.view = view;
+        if (view.isFocusable()) {
+            view.setFocusable(false);
+            holder.state |= FLAG_FOCUSABLE;
+        }
+        caches.add(holder);
     }
 
     void keepSize(int size, Filter<View> filter) {
         size = size < 0 ? 0 : size;
         final int count = caches.size() - size;
         for (int i = 0; i < count; i++) {
-            View v = caches.remove(0);
+            Holder h = caches.remove(0);
             if (null != filter) {
-                filter.call(v);
+                filter.call(h.view);
             }
+        }
+    }
+
+    private static class Holder {
+        View view;
+        int state;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Holder that = (Holder) o;
+            return view.equals(that.view);
         }
     }
 }
