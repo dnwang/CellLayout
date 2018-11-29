@@ -22,12 +22,7 @@ abstract class LongKeyPressDirector {
 
     public abstract boolean onSinglePress(final int keyCode);
 
-    private View target;
     private boolean onKeyLongPress = false;
-
-    LongKeyPressDirector(View view) {
-        this.target = view;
-    }
 
     private long downTime = -1;
 
@@ -54,16 +49,14 @@ abstract class LongKeyPressDirector {
                 if (longPress) {
                     onLongPress(KeyEvent.ACTION_UP, keyCode);
                 } else {
-                    if (!onSinglePress(keyCode)) {
-                        moveFocusBy(keyCode);
-                    }
+                    onSinglePress(keyCode);
                 }
             }
         }
         return false;
     }
 
-    private void moveFocusBy(final int keyCode) {
+    public static void moveSystemFocusBy(ViewGroup root, View focus, final int keyCode) {
         int direction = 0;
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
@@ -80,9 +73,7 @@ abstract class LongKeyPressDirector {
                 break;
         }
         if (0 != direction) {
-            final View mView = this.target.getRootView();
-            final View focused = mView.findFocus();
-            View v = FocusFinder.getInstance().findNextFocus((ViewGroup) mView, focused, direction);
+            View v = FocusFinder.getInstance().findNextFocus(root, focus, direction);
             if (v != null) {
                 v.requestFocus(direction);
             }
