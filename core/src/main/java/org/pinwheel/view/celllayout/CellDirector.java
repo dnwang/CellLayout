@@ -2,6 +2,10 @@ package org.pinwheel.view.celllayout;
 
 import android.util.Log;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -80,43 +84,35 @@ final class CellDirector {
         if (0 == dx && 0 == dy) {
             return false;
         }
-        group.foreachAllCells(true, new Filter<Cell>() {
+        Sync.execute(new Sync.Function<Collection<Cell>>() {
             @Override
-            public boolean call(Cell cell) {
-                if (cell == group) return false; // don't move self
-                cell.offset(dx, dy);
-                if (setVisibleState(cell)) {
+            public Collection<Cell> call() {
+                final long begin = System.nanoTime();
+                final Set<Cell> stateChangedCells = new HashSet<>();
+                group.foreachAllCells(true, new Filter<Cell>() {
+                    @Override
+                    public boolean call(Cell cell) {
+                        if (cell == group) return false;
+                        cell.offset(dx, dy);
+                        if (setVisibleState(cell)) {
+                            stateChangedCells.add(cell);
+                        }
+                        return false;
+                    }
+                });
+                Log.e(CellLayout.TAG, "[offset] " + (System.nanoTime() - begin) / 1000000f);
+                return stateChangedCells;
+            }
+        }, new Sync.Action<Collection<Cell>>() {
+            @Override
+            public void call(Collection<Cell> stateChangedCells) {
+                for (Cell cell : stateChangedCells) {
                     onCellVisibleChanged(cell);
                 }
-                return false;
             }
         });
-//        Sync.execute(new Sync.Function<Collection<Cell>>() {
-//            @Override
-//            public Collection<Cell> call() {
-//                final Set<Cell> stateChangedCells = new HashSet<>();
-//                group.foreachAllCells(true, new Filter<Cell>() {
-//                    @Override
-//                    public boolean call(Cell cell) {
-//                        if (cell == group) return false;
-//                        if (setVisibleState(cell)) {
-//                            stateChangedCells.add(cell);
-//                        }
-//                        return false;
-//                    }
-//                });
-//                return stateChangedCells;
-//            }
-//        }, new Sync.Action<Collection<Cell>>() {
-//            @Override
-//            public void call(Collection<Cell> stateChangedCells) {
-//                for (Cell cell : stateChangedCells) {
-//                    onCellVisibleChanged(cell);
-//                }
-//            }
-//        });
         onScroll(group, dx, dy);
-        Log.e(CellLayout.TAG, "[moveBy] " + (System.nanoTime() - begin) / 1000000f);
+        Log.e(CellLayout.TAG, "[scrollTo] " + (System.nanoTime() - begin) / 1000000f);
         return true;
     }
 
@@ -146,9 +142,15 @@ final class CellDirector {
     }
 
     void notifyScrollComplete() {
-        if (null != callback) {
-            callback.onScrollComplete();
-        }
+        // must be wait scroll action complete !
+        Sync.execute(new Sync.Action() {
+            @Override
+            public void call(Object o) {
+                if (null != callback) {
+                    callback.onScrollComplete();
+                }
+            }
+        });
     }
 
     private boolean setVisibleState(Cell cell) {

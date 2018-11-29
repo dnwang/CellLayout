@@ -44,19 +44,43 @@ final class Sync {
         }
     }
 
-    static <T> void execute(final Function<T> action, final Action<T> callback) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                final T t = action.call();
+    private static Function EMPTY = new Function() {
+        @Override
+        public Object call() {
+            return null;
+        }
+    };
+
+    static void execute(final Action action) {
+        execute(EMPTY, action);
+    }
+
+    static <T> void execute(final Function<T> func, final Action<T> action) {
+        if (null == func) {
+            if (null != action) {
                 uiHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        callback.call(t);
+                        action.call(null);
                     }
                 });
             }
-        });
+        } else {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    final T t = func.call();
+                    if (null != action) {
+                        uiHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                action.call(t);
+                            }
+                        });
+                    }
+                }
+            });
+        }
     }
 
     interface Action<T> {

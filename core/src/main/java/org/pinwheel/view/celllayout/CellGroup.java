@@ -1,7 +1,5 @@
 package org.pinwheel.view.celllayout;
 
-import android.util.SparseArray;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +16,6 @@ import java.util.List;
 public class CellGroup extends Cell {
 
     private final List<Cell> subCells = new ArrayList<>();
-    // all cell cache
-    private final SparseArray<Cell> allCellCache = new SparseArray<>(); // contains self
 
     CellGroup() {
         super();
@@ -47,8 +43,6 @@ public class CellGroup extends Cell {
         cell.setParent(this);
         cell.setParams(p);
         subCells.add(cell);
-        // cell changed
-        allCellCache.clear();
     }
 
     public void removeCell(Cell cell) {
@@ -60,8 +54,6 @@ public class CellGroup extends Cell {
         }
         subCells.remove(cell);
         cell.setParent(null);
-        // cell changed
-        allCellCache.clear();
     }
 
     public Cell getCellAt(int order) {
@@ -81,25 +73,21 @@ public class CellGroup extends Cell {
 
     @Override
     public Cell findCellById(int cellId) {
-        if (0 != allCellCache.size()) {
-            return allCellCache.get(cellId);
-        } else {
-            Cell target = super.findCellById(cellId);
-            if (null == target) {
-                for (Cell cell : subCells) {
-                    if (cell.getId() == cellId) {
-                        target = cell;
+        Cell target = super.findCellById(cellId);
+        if (null == target) {
+            for (Cell cell : subCells) {
+                if (cell.getId() == cellId) {
+                    target = cell;
+                    break;
+                } else if (cell instanceof CellGroup) {
+                    target = cell.findCellById(cellId);
+                    if (null != target) {
                         break;
-                    } else if (cell instanceof CellGroup) {
-                        target = cell.findCellById(cellId);
-                        if (null != target) {
-                            break;
-                        }
                     }
                 }
             }
-            return target;
         }
+        return target;
     }
 
     final void foreachSubCells(boolean withGroup, Filter<Cell> filter) {
@@ -119,28 +107,10 @@ public class CellGroup extends Cell {
     }
 
     final void foreachAllCells(boolean withGroup, Filter<Cell> filter) {
-        if (0 != allCellCache.size()) {
-            final int size = allCellCache.size();
-            for (int i = 0; i < size; i++) {
-                Cell cell = allCellCache.valueAt(i);
-                if (cell instanceof CellGroup) {
-                    if (withGroup) {
-                        filter.call(cell);
-                    }
-                } else {
-                    filter.call(cell);
-                }
-            }
-        } else {
-            if (_foreachAllCells(withGroup, this, filter)) {
-                // has intercept, is not all cell
-                allCellCache.clear();
-            }
-        }
+        _foreachAllCells(withGroup, this, filter);
     }
 
     private boolean _foreachAllCells(boolean withGroup, CellGroup group, Filter<Cell> filter) {
-        allCellCache.put(group.getId(), group);
         boolean intercept = false;
         if (withGroup) {
             intercept = filter.call(group);
@@ -154,7 +124,6 @@ public class CellGroup extends Cell {
             if (cell instanceof CellGroup) {
                 intercept = _foreachAllCells(withGroup, (CellGroup) cell, filter);
             } else {
-                allCellCache.put(cell.getId(), cell);
                 intercept = filter.call(cell);
             }
             if (intercept) {

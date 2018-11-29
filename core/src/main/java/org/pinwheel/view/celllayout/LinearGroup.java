@@ -70,9 +70,9 @@ public class LinearGroup extends CellGroup {
         super.layout(x, y);
         int tmp;
         if (HORIZONTAL == orientation) {
-            tmp = left + paddingLeft;
+            tmp = getLeft() + paddingLeft;
         } else {
-            tmp = top + paddingTop;
+            tmp = getTop() + paddingTop;
         }
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
@@ -81,12 +81,12 @@ public class LinearGroup extends CellGroup {
             if (HORIZONTAL == orientation) {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginLeft;
-                cell.layout(tmp, top + paddingTop + p.marginTop);
+                cell.layout(tmp, getTop() + paddingTop + p.marginTop);
                 tmp += (cell.width() + p.marginRight);
             } else {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginTop;
-                cell.layout(left + paddingLeft + p.marginLeft, tmp);
+                cell.layout(getLeft() + paddingLeft + p.marginLeft, tmp);
                 tmp += (cell.height() + p.marginBottom);
             }
         }

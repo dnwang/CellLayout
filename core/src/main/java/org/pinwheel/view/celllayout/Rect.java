@@ -4,14 +4,10 @@ package org.pinwheel.view.celllayout;
  * Copy from {@link android.graphics.Rect}.
  */
 class Rect {
-    protected int left;
-    protected int top;
-    protected int right;
-    protected int bottom;
-
-    static Rect copy(Rect rect) {
-        return new Rect(rect.left, rect.top, rect.right, rect.bottom);
-    }
+    private int left;
+    private int top;
+    private int right;
+    private int bottom;
 
     Rect() {
     }
@@ -21,6 +17,13 @@ class Rect {
     }
 
     Rect(int left, int top, int right, int bottom) {
+        this.left = left;
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
+    }
+
+    protected void set(int left, int top, int right, int bottom) {
         this.left = left;
         this.top = top;
         this.right = right;
@@ -61,51 +64,25 @@ class Rect {
     }
 
     /**
-     * Return a string representation of the rectangle in a compact form.
-     */
-    public String toShortString() {
-        return toShortString(new StringBuilder(32));
-    }
-
-    /**
-     * Return a string representation of the rectangle in a compact form.
-     *
-     * @hide
-     */
-    public String toShortString(StringBuilder sb) {
-        sb.setLength(0);
-        sb.append('[');
-        sb.append(left);
-        sb.append(',');
-        sb.append(top);
-        sb.append("][");
-        sb.append(right);
-        sb.append(',');
-        sb.append(bottom);
-        sb.append(']');
-        return sb.toString();
-    }
-
-    /**
      * Returns true if the rectangle is empty (left >= right or top >= bottom)
      */
     public final boolean isEmpty() {
         return left >= right || top >= bottom;
     }
 
-    public final int getLeft() {
+    public int getLeft() {
         return left;
     }
 
-    public final int getTop() {
+    public int getTop() {
         return top;
     }
 
-    public final int getRight() {
+    public int getRight() {
         return right;
     }
 
-    public final int getBottom() {
+    public int getBottom() {
         return bottom;
     }
 
@@ -486,7 +463,7 @@ class Rect {
     }
 
     public android.graphics.Rect convert() {
-        return new android.graphics.Rect(left, top, right, bottom);
+        return new android.graphics.Rect(getLeft(), getTop(), getRight(), getBottom());
     }
 
 }

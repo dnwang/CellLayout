@@ -56,9 +56,9 @@ public class GridGroup extends CellGroup {
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
             Params p = (GridGroup.Params) cell.getParams();
-            int l = left + paddingLeft + p.marginLeft;
+            int l = getLeft() + paddingLeft + p.marginLeft;
             l += p.x * (divider + bW);
-            int t = top + paddingTop + p.marginTop;
+            int t = getTop() + paddingTop + p.marginTop;
             t += p.y * (divider + bH);
             cell.layout(l, t);
         }

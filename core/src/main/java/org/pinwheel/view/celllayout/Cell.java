@@ -41,10 +41,22 @@ public class Cell extends Rect implements Serializable {
     }
 
     protected void layout(int x, int y) {
-        left = x;
-        top = y;
-        right = left + measureWidth;
-        bottom = top + measureHeight;
+        layoutX = x;
+        layoutY = y;
+        set(x, y, x + measureWidth, y + measureHeight);
+        parentScrollX = parentScrollY = 0;
+    }
+
+    @Override
+    void offset(int dx, int dy) {
+        super.offset(dx, dy);
+        parentScrollX = parentScrollY = 0;
+    }
+
+    @Override
+    void offsetTo(int newLeft, int newTop) {
+        super.offsetTo(newLeft, newTop);
+        parentScrollX = parentScrollY = 0;
     }
 
     @Override
@@ -91,6 +103,34 @@ public class Cell extends Rect implements Serializable {
     public final void removeFromParent() {
         if (null != parent) {
             parent.removeCell(this);
+        }
+    }
+
+    public int getLayoutXWithParentScroll() {
+        return layoutX + parentScrollX;
+    }
+
+    public int getLayoutYWithParentScroll() {
+        return layoutY + parentScrollY;
+    }
+
+    private int layoutX, layoutY;
+    private int parentScrollX, parentScrollY;
+
+    public final void computeParentScroll() {
+        parentScrollX = 0;
+        parentScrollY = 0;
+        if (null != parent) {
+            computeParentScroll(parent);
+        }
+    }
+
+    private void computeParentScroll(CellGroup p) {
+        parentScrollX += p.scrollX;
+        parentScrollY += p.scrollY;
+        CellGroup pp = p.getParent();
+        if (null != pp) {
+            computeParentScroll(pp);
         }
     }
 

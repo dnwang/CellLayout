@@ -380,7 +380,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             @Override
             public boolean call(Cell cell) {
                 if (!cell.hasContent()) {
-                    canvas.drawRect(cell.convert(), holderPaint);
+                    cell.computeParentScroll();
+                    final int left = cell.getLayoutXWithParentScroll();
+                    final int top = cell.getLayoutYWithParentScroll();
+                    canvas.drawRect(left, top, left + cell.width(), top + cell.height(), holderPaint);
                 }
                 return false;
             }
@@ -422,18 +425,21 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         final Cell cell = viewManager.findCellByView(child);
         if (null != cell) {
+            cell.computeParentScroll();
+            final int l = cell.getLayoutXWithParentScroll();
+            final int t = cell.getLayoutYWithParentScroll();
             // cellLayout has focus
             if (hasFocus() && FOCUS_HIGHLIGHT && cell == focusManager.getFocus()) {
                 float dw = cell.width() * (child.getScaleX() - 1);
                 float dh = cell.height() * (child.getScaleY() - 1);
                 canvas.save();
-                canvas.translate(cell.left - dw / 2 - FOCUS_STOKE_WIDTH / 2, cell.top - dh / 2 - FOCUS_STOKE_WIDTH / 2);
+                canvas.translate(l - dw / 2 - FOCUS_STOKE_WIDTH / 2, t - dh / 2 - FOCUS_STOKE_WIDTH / 2);
                 canvas.scale(child.getScaleX(), child.getScaleY());
                 canvas.drawRect(0, 0, cell.width() + FOCUS_STOKE_WIDTH, cell.height() + FOCUS_STOKE_WIDTH, focusPaint);
                 canvas.restore();
             }
             canvas.save();
-            canvas.translate(cell.left - child.getLeft(), cell.top - child.getTop());
+            canvas.translate(l - child.getLeft(), t - child.getTop());
             final boolean result = super.drawChild(canvas, child, drawingTime);
             canvas.restore();
             return result;
@@ -565,7 +571,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onVisibleChanged(final Cell cell) {
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
-                // the cache set null, it can be skip measure
+                // the cache set null, it will be skip measure
 //                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
                 final View cache = cell.isNoHolder() ? pool.obtain(cell, true) : null;
                 if (null != cache) {
@@ -635,19 +641,19 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
-                entry.getValue().layout(cell.left, cell.top, cell.right, cell.bottom);
+                entry.getValue().layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
             }
         }
 
         void logInfo() {
             // log viewManager info
             final int size = poolMap.size();
-            Log.d(TAG, "[into] --------------");
+            Log.d(TAG, "[info] ------- CellLayout -------");
             for (int i = 0; i < size; i++) {
-                Log.d(TAG, "[into] poolMap_key_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
+                Log.d(TAG, "[info] poolMap_style_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
             }
-            Log.d(TAG, "[into] activeCells size: " + activeCells.size());
-            Log.d(TAG, "[into] --------------");
+            Log.d(TAG, "[info] activeCells size: " + activeCells.size());
+            Log.d(TAG, "[info] --------------------------");
         }
     }
 
@@ -677,18 +683,18 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
         private void checkAndMoveFocusVisible() {
             final Rect area = new Rect(director.getRoot());
-            final int wSpace = area.width() / 5;
-            final int hSpace = area.height() / 5;
+            area.inset(area.width() / 6, area.height() / 6);
             int dx = 0, dy = 0;
-            if (focusCell.left < (area.left + wSpace)) {
-                dx = (area.left + wSpace) - focusCell.left;
-            } else if (focusCell.right > (area.right - wSpace)) {
-                dx = (area.right - wSpace) - focusCell.right;
+            final int l = focusCell.getLeft(), t = focusCell.getTop(), r = focusCell.getRight(), b = focusCell.getBottom();
+            if (l < area.getLeft()) {
+                dx = area.getLeft() - l;
+            } else if (r > area.getRight()) {
+                dx = area.getRight() - r;
             }
-            if (focusCell.top < (area.top + hSpace)) {
-                dy = (area.top + hSpace) - focusCell.top;
-            } else if (focusCell.bottom > (area.bottom - hSpace)) {
-                dy = (area.bottom - hSpace) - focusCell.bottom;
+            if (t < area.getTop()) {
+                dy = area.getTop() - t;
+            } else if (b > area.getBottom()) {
+                dy = area.getBottom() - b;
             }
             if (0 != dx || 0 != dy) {
                 final LinearGroup vLinear = director.findLinearGroupBy(focusCell, LinearGroup.VERTICAL);
@@ -720,16 +726,20 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             final Rect limitArea;
             switch (dir) {
                 case View.FOCUS_LEFT:
-                    limitArea = new Rect(from.left - maxWidth, from.top, from.right - from.width(), from.bottom);
+                    limitArea = new Rect(from.getLeft() - maxWidth, from.getTop(),
+                            from.getRight() - from.width(), from.getBottom());
                     break;
                 case View.FOCUS_UP:
-                    limitArea = new Rect(from.left, from.top - maxHeight, from.right, from.bottom - from.height());
+                    limitArea = new Rect(from.getLeft(), from.getTop() - maxHeight,
+                            from.getRight(), from.getBottom() - from.height());
                     break;
                 case View.FOCUS_RIGHT:
-                    limitArea = new Rect(from.left + from.width(), from.top, from.right + maxWidth, from.bottom);
+                    limitArea = new Rect(from.getLeft() + from.width(), from.getTop(),
+                            from.getRight() + maxWidth, from.getBottom());
                     break;
                 case View.FOCUS_DOWN:
-                    limitArea = new Rect(from.left, from.top + from.height(), from.right, from.bottom + maxHeight);
+                    limitArea = new Rect(from.getLeft(), from.getTop() + from.height(),
+                            from.getRight(), from.getBottom() + maxHeight);
                     break;
                 default:
                     limitArea = null;
@@ -747,11 +757,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                                 if (null != tmp) {
                                     int d1, d2;
                                     if (View.FOCUS_LEFT == dir || View.FOCUS_RIGHT == dir) {
-                                        d1 = Math.abs(cell.left - from.left);
-                                        d2 = Math.abs(tmp.left - from.left);
+                                        d1 = Math.abs(cell.getLeft() - from.getLeft());
+                                        d2 = Math.abs(tmp.getLeft() - from.getLeft());
                                     } else {
-                                        d1 = Math.abs(cell.top - from.top);
-                                        d2 = Math.abs(tmp.top - from.top);
+                                        d1 = Math.abs(cell.getTop() - from.getTop());
+                                        d2 = Math.abs(tmp.getTop() - from.getTop());
                                     }
                                     if (distance < d1 && d1 < d2) {
                                         tmp = cell;
