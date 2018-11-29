@@ -302,6 +302,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             }
             flag |= FLAG_MOVING_LONG_PRESS;
             moveGroup = director.findLinearGroupBy(focusManager.getFocus(), orientation);
+            moveDistance = 0;
         }
 
         private void releaseLongPress() {
