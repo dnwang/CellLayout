@@ -154,15 +154,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     private final class SwitchScaleAction {
         int sum = 4;
         final float unit = (SCALE_MAX - SCALE_MIN) / sum;
-        final Cell zoomIn, zoomOut;
+        final View zoomIn, zoomOut;
 
-        SwitchScaleAction(Cell zoomIn, Cell zoomOut) {
-            if (null != zoomIn) {
-                zoomIn.scale = SCALE_MAX;
-            }
-            if (null != zoomOut) {
-                zoomOut.scale = SCALE_MIN;
-            }
+        SwitchScaleAction(View zoomIn, View zoomOut) {
             this.zoomIn = zoomIn;
             this.zoomOut = zoomOut;
         }
@@ -172,11 +166,16 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             post(new Runnable() {
                 @Override
                 public void run() {
+                    float scale;
                     if (null != zoomIn) {
-                        zoomIn.scale -= unit;
+                        scale = Math.max(SCALE_MIN, zoomIn.getScaleX() - unit);
+                        zoomIn.setScaleX(scale);
+                        zoomIn.setScaleY(scale);
                     }
                     if (null != zoomOut) {
-                        zoomOut.scale += unit;
+                        scale = Math.min(SCALE_MAX, zoomOut.getScaleX() + unit);
+                        zoomOut.setScaleX(scale);
+                        zoomOut.setScaleY(scale);
                     }
                     invalidate();
                     if (sum-- > 0) {
@@ -424,11 +423,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         if (null != cell) {
             // cellLayout has focus
             if (hasFocus() && FOCUS_HIGHLIGHT && cell == focusManager.getFocus()) {
-                float dw = cell.width() * (cell.scale - 1);
-                float dh = cell.height() * (cell.scale - 1);
+                float dw = cell.width() * (child.getScaleX() - 1);
+                float dh = cell.height() * (child.getScaleY() - 1);
                 canvas.save();
                 canvas.translate(cell.left - dw / 2 - FOCUS_STOKE_WIDTH / 2, cell.top - dh / 2 - FOCUS_STOKE_WIDTH / 2);
-                canvas.scale(cell.scale, cell.scale);
+                canvas.scale(child.getScaleX(), child.getScaleY());
                 canvas.drawRect(0, 0, cell.width() + FOCUS_STOKE_WIDTH, cell.height() + FOCUS_STOKE_WIDTH, focusPaint);
                 canvas.restore();
             }
@@ -572,14 +571,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     bindContentToCell(cell, cache);
                 } else { // holder
                     cell.setHasContent(false);
-                    cell.setFocusable(false);
                     activeCells.put(cell, null);
                 }
             } else { // remove active view
                 final View v = activeCells.remove(cell);
                 if (cell.hasContent()) {
                     cell.setHasContent(false);
-                    cell.setFocusable(false);
                     pool.recycle(v);
                     adapter.onViewRecycled(cell, v);
                 }
@@ -661,13 +658,13 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
 
         void setFocus(Cell cell) {
-            if (FOCUS_SCALE && (null != focusCell || null != cell)) {
-                new SwitchScaleAction(focusCell, cell).execute();
-            }
-            if (null != onSelectChangedListener) {
-                final View from = viewManager.findViewByCell(focusCell);
-                final View to = viewManager.findViewByCell(cell);
-                if (null != from || null != to) {
+            final View from = viewManager.findViewByCell(focusCell);
+            final View to = viewManager.findViewByCell(cell);
+            if (null != from || null != to) {
+                if (FOCUS_SCALE) {
+                    new SwitchScaleAction(from, to).execute();
+                }
+                if (null != onSelectChangedListener) {
                     onSelectChangedListener.onSelectChanged(focusCell, from, cell, to);
                 }
             }
@@ -776,7 +773,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 }
             });
         }
-
     }
 
     private static int convertKeyCodeToFocusDir(final int keyCode) {

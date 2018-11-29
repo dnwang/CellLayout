@@ -137,20 +137,20 @@ public final class CellFactory {
                         }
                         try {
                             if (type == int.class) {
-                                int def = 0;
                                 if (key.startsWith("padding")) {
-                                    def = padding;
+                                    field.set(obj, json.optInt(key, padding));
                                 } else if (key.startsWith("margin")) {
-                                    def = margin;
+                                    field.set(obj, json.optInt(key, margin));
+                                } else if (json.has(key)) {
+                                    field.set(obj, json.optInt(key, 0));
                                 }
-                                field.set(obj, json.optInt(key, def));
-                            } else if (type == String.class) {
+                            } else if (type == String.class && json.has(key)) {
                                 field.set(obj, json.optString(key, null));
-                            } else if (type == boolean.class) {
+                            } else if (type == boolean.class && json.has(key)) {
                                 field.set(obj, json.optBoolean(key, false));
-                            } else if (type == short.class) {
+                            } else if (type == short.class && json.has(key)) {
                                 field.set(obj, (short) json.optDouble(key, 0d));
-                            } else if (type == double.class) {
+                            } else if (type == double.class && json.has(key)) {
                                 field.set(obj, json.optDouble(key, 0d));
                             }
                         } catch (IllegalAccessException e) {

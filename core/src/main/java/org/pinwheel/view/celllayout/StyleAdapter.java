@@ -79,13 +79,13 @@ public final class StyleAdapter implements CellLayout.ViewAdapter, CellLayout.On
 
     @Override
     public final void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView) {
-        if (null != oldCell) {
+        if (null != oldCell && null != oldView) {
             final Style oldStyle = viewStyles.get(getViewType(oldCell));
             if (null != oldStyle) {
                 oldStyle.onSelectChanged(oldCell, getHolder(oldView), false);
             }
         }
-        if (null != newCell) {
+        if (null != newCell && null != newView) {
             final Style newStyle = viewStyles.get(getViewType(newCell));
             if (null != newStyle) {
                 newStyle.onSelectChanged(newCell, getHolder(newView), true);

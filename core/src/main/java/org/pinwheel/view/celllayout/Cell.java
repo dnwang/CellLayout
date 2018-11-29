@@ -25,7 +25,6 @@ public class Cell extends Rect implements Serializable {
     //
     @Attribute
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
-    public float scale = 1f;
     //
     private int measureWidth, measureHeight;
     //

@@ -71,6 +71,10 @@ public final class MainActivity extends Activity {
                 "group_0.json",
                 "group_1.json",
                 "group_2.json",
+                "group_2.json",
+                "group_1.json",
+                "group_2.json",
+                "group_2.json",
         };
         for (String groupName : groupNames) {
             try {
@@ -126,8 +130,7 @@ public final class MainActivity extends Activity {
                 public void onSelectChanged(Cell cell, StyleAdapter.Holder holder, boolean isSelected) {
                     TextView text = holder.get(R.id.desc);
                     text.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
-                    text.setSelected(true);
-                    text.setText("跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来");
+                    text.setText("付费");
                 }
             })
             .addStyle(1, new StyleAdapter.Style(R.layout.item_style_title) {
