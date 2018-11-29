@@ -13,7 +13,7 @@ import android.view.View;
  * @author dnwang
  * @version 2018/11/28,13:49
  */
-public final class StyleAdapter implements CellLayout.ViewAdapter {
+public final class StyleAdapter implements CellLayout.ViewAdapter, CellLayout.OnSelectChangedListener {
 
     private static final int DEF_STYLE_ID = 0;
 
@@ -77,14 +77,33 @@ public final class StyleAdapter implements CellLayout.ViewAdapter {
         return (Holder) tag;
     }
 
+    @Override
+    public final void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView) {
+        if (null != oldCell) {
+            final Style oldStyle = viewStyles.get(getViewType(oldCell));
+            if (null != oldStyle) {
+                oldStyle.onSelectChanged(oldCell, getHolder(oldView), false);
+            }
+        }
+        if (null != newCell) {
+            final Style newStyle = viewStyles.get(getViewType(newCell));
+            if (null != newStyle) {
+                newStyle.onSelectChanged(newCell, getHolder(newView), true);
+            }
+        }
+    }
+
     public static abstract class Style {
-        int layoutId;
+        private final int layoutId;
 
         public Style(int layoutId) {
             this.layoutId = layoutId;
         }
 
         public abstract void onBind(Cell cell, Holder holder);
+
+        public void onSelectChanged(Cell cell, Holder holder, boolean isSelected) {
+        }
 
         public void onRecycled(Cell cell, Holder holder) {
         }

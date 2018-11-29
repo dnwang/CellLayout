@@ -28,8 +28,6 @@
         android:ellipsize="marquee"
         android:gravity="center"
         android:padding="8dp"
-        android:shadowColor="@android:color/black"
-        android:shadowRadius="3"
         android:singleLine="true"
         android:text="--"
         android:textColor="@android:color/white"

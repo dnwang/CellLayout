@@ -63,7 +63,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     private OnScrollListener onScrollListener;
-    private OnCellSelectedListener onCellSelectedListener;
+    private OnSelectChangedListener onSelectChangedListener;
 
     private final CellDirector director = new CellDirector();
     private final ViewManager viewManager = new ViewManager();
@@ -89,7 +89,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     public void setAdapter(ViewAdapter adapter) {
         if (adapter instanceof StyleAdapter) {
-            ((StyleAdapter) adapter).inflater = LayoutInflater.from(getContext());
+            final StyleAdapter a = (StyleAdapter) adapter;
+            a.inflater = LayoutInflater.from(getContext());
+            setOnSelectChangedListener(a);
         }
         viewManager.setAdapter(adapter);
     }
@@ -100,8 +102,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         director.forceLayout();
     }
 
-    public void setOnCellSelectedListener(OnCellSelectedListener onCellSelectedListener) {
-        this.onCellSelectedListener = onCellSelectedListener;
+    public void setOnSelectChangedListener(OnSelectChangedListener onSelectChangedListener) {
+        this.onSelectChangedListener = onSelectChangedListener;
     }
 
     public void setOnScrollListener(OnScrollListener onScrollListener) {
@@ -227,11 +229,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
-    public void requestChildFocus(View child, View focused) {
-        View oldFocus = findFocus();
-        oldFocus = CellLayout.this == oldFocus ? null : oldFocus;
-        final Cell oldCell = viewManager.findCellByView(oldFocus);
-        final Cell focusCell = viewManager.findCellByView(child);
+    public void requestChildFocus(View newFocusView, View focused) {
+        View oldFocusView = findFocus();
+        oldFocusView = CellLayout.this == oldFocusView ? null : oldFocusView;
+        final Cell oldCell = viewManager.findCellByView(oldFocusView);
+        //
+        final Cell focusCell = viewManager.findCellByView(newFocusView);
         if (null != focusCell) {
             final Rect area = new Rect(director.getRoot());
             final int wSpace = area.width() / 5;
@@ -259,15 +262,16 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     }
                 }.execute();
             }
-            super.requestChildFocus(child, focused);
+            super.requestChildFocus(newFocusView, focused);
         } else {
-            child = null;
+            newFocusView = null;
         }
-        if (FOCUS_SCALE && (null != oldFocus || null != child)) {
-            new SwitchScaleAction(oldFocus, child).execute();
+        //
+        if (FOCUS_SCALE && (null != oldFocusView || null != newFocusView)) {
+            new SwitchScaleAction(oldFocusView, newFocusView).execute();
         }
-        if ((null != oldCell || null != focusCell) && null != onCellSelectedListener) {
-            onCellSelectedListener.onSelected(oldCell, focusCell);
+        if ((null != oldCell || null != focusCell) && null != onSelectChangedListener) {
+            onSelectChangedListener.onSelectChanged(oldCell, oldFocusView, focusCell, newFocusView);
         }
     }
 
@@ -576,8 +580,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onViewRecycled(Cell cell, View view);
     }
 
-    public interface OnCellSelectedListener {
-        void onSelected(Cell oldCell, Cell newCell);
+    public interface OnSelectChangedListener {
+        void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView);
     }
 
     public interface OnScrollListener {
@@ -655,20 +659,21 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onVisibleChanged(final Cell cell) {
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
+                // the cache set null, it can be skip measure
 //                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
-                final View cache = null;// skip cache measure
+                final View cache = cell.isNoHolder() ? pool.obtain(cell, true) : null;
                 if (null != cache) {
                     bindContentToCell(cell, cache);
                 } else { // holder
                     cell.setHasContent(false);
-                    cell.setHasFocus(false);
+                    cell.setFocusable(false);
                     activeCells.put(cell, null);
                 }
             } else { // remove active view
                 final View v = activeCells.remove(cell);
                 if (cell.hasContent()) {
                     cell.setHasContent(false);
-                    cell.setHasFocus(false);
+                    cell.setFocusable(false);
                     pool.recycle(v);
                     adapter.onViewRecycled(cell, v);
                 }
@@ -718,6 +723,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             }
             adapter.onBindView(cell, v);
             cell.setHasContent(true);
+            cell.setFocusable(v.isFocusable());
             activeCells.put(cell, v);
         }
 

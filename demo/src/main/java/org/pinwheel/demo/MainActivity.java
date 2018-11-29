@@ -52,7 +52,7 @@ public final class MainActivity extends Activity {
 
     private void loadSingle() {
         try {
-            CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("layout.json")));
+            CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("sample.json")));
             dataMaps = bundle.dataMap;
             cellLayout.setRoot(bundle.root);
         } catch (JSONException e) {
@@ -68,11 +68,8 @@ public final class MainActivity extends Activity {
         root.setDivider(20);
         root.setPadding(80, 80, 80, 80);
         final String[] groupNames = new String[]{
+                "group_0.json",
                 "group_1.json",
-                "group_2.json",
-                "group_2.json",
-                "group_1.json",
-                "group_2.json",
                 "group_2.json",
         };
         for (String groupName : groupNames) {
@@ -107,8 +104,14 @@ public final class MainActivity extends Activity {
                     final String title = null != args ? args.getString("title") : "";
                     final String posterUrl = null != args ? args.getString("poster") : null;
                     text.setText(title);
-//                    image.setImageResource(RES_IMG[(int) (Math.random() * RES_IMG.length)]);
                     BitmapLoader.INSTANCE.display(image, posterUrl);
+                }
+
+                @Override
+                public void onSelectChanged(Cell cell, StyleAdapter.Holder holder, boolean isSelected) {
+                    TextView text = holder.get(R.id.desc);
+                    text.setBackgroundColor(isSelected ? Color.WHITE : Color.TRANSPARENT);
+                    text.setTextColor(isSelected ? Color.BLACK : Color.WHITE);
                 }
             })
             .addStyle(2, new StyleAdapter.Style(R.layout.item_style_poster) {
@@ -118,10 +121,19 @@ public final class MainActivity extends Activity {
                     final String posterUrl = null != args ? args.getString("poster") : null;
                     BitmapLoader.INSTANCE.display((ImageView) holder.get(R.id.image), posterUrl);
                 }
+
+                @Override
+                public void onSelectChanged(Cell cell, StyleAdapter.Holder holder, boolean isSelected) {
+                    TextView text = holder.get(R.id.desc);
+                    text.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
+                    text.setSelected(true);
+                    text.setText("跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来跑起来");
+                }
             })
             .addStyle(1, new StyleAdapter.Style(R.layout.item_style_title) {
                 @Override
                 public void onBind(Cell cell, StyleAdapter.Holder holder) {
+                    cell.setNoHolder(true); // 滑动的时候始终展示，不用站位图代替
                     final Bundle args = dataMaps.get(cell.getId());
                     final String title = null != args ? args.getString("title") : "";
                     TextView text = (TextView) holder.view;
@@ -131,23 +143,6 @@ public final class MainActivity extends Activity {
 
     private void initCellLayout() {
         cellLayout.setAdapter(adapter);
-        cellLayout.setOnCellSelectedListener(new CellLayout.OnCellSelectedListener() {
-            @Override
-            public void onSelected(Cell oldCell, Cell newCell) {
-
-            }
-        });
-        cellLayout.setOnScrollListener(new CellLayout.OnScrollListener() {
-            @Override
-            public void onScroll(CellGroup group, int dx, int dy) {
-
-            }
-
-            @Override
-            public void onScrollComplete() {
-
-            }
-        });
     }
 
     private static int getColor() {
@@ -155,7 +150,6 @@ public final class MainActivity extends Activity {
                 (int) (Math.random() * 255),
                 (int) (Math.random() * 255));
     }
-
 
     private static View loadLayout(Context ctx, File file) {
         try {

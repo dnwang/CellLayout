@@ -54,8 +54,9 @@ abstract class LongKeyPressDirector {
                 if (longPress) {
                     onLongPress(KeyEvent.ACTION_UP, keyCode);
                 } else {
-                    onSinglePress(keyCode);
-                    moveFocusBy(keyCode);
+                    if (!onSinglePress(keyCode)) {
+                        moveFocusBy(keyCode);
+                    }
                 }
             }
         }

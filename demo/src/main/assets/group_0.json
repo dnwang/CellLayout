@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "root": {
+    "type": "linear",
+    "divider": 10,
+    "padding": 80,
+    "orientation": 1,
+    "cells": [
+      {
+        "type": "grid",
+        "height": 600,
+        "row": 4,
+        "column": 5,
+        "cells": [
+          {
+            "style": 2,
+            "x": 0,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "美人鱼",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1544064152&di=b729d7ef42a2e63ef148f905d951a07a&imgtype=jpg&er=1&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01797958b384b4a801219c774f3a1b.jpg%401280w_1l_2o_100sh.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 0,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "斯大林格列",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=2adefa83a1a2f3aeb91c24858370a281&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01fc37554b6a3b000001bf722be334.jpg%401280w_1l_2o_100sh.png"
+            }
+          },
+          {
+            "style": 2,
+            "x": 0,
+            "y": 2,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "分歧者",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 0,
+            "y": 3,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "不知道",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=34ba4fd6e8a655a6155873999d71eb8d&imgtype=0&src=http%3A%2F%2Fpic23.photophoto.cn%2F20120620%2F0006019304075562_b.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 1,
+            "y": 0,
+            "marginLeft": 10,
+            "columnCount": 4,
+            "rowCount": 4,
+            "data": {
+              "title": "绝命岛",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439586&di=a60b26666024689a5028a2b4b254137b&imgtype=0&src=http%3A%2F%2Fimage.tupian114.com%2F20120327%2F03532421.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "row": 2,
+        "column": 5,
+        "divider": 10,
+        "height": 600,
+        "cells": [
+          {
+            "style": 2,
+            "x": 0,
+            "y": 0,
+            "columnCount": 3,
+            "rowCount": 2,
+            "data": {
+              "title": "金沙",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439586&di=b6048fff73973043c9001507e7e7dd36&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01874257f71c3da84a0d304f7b0626.jpg%402o.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 3,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "加勒比海盗2",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469517566&di=0953073524ae8de9f0bfda8830db8c15&imgtype=0&src=http%3A%2F%2Fs8.sinaimg.cn%2Forignal%2F4616020b0759039cb6d07"
+            }
+          },
+          {
+            "style": 2,
+            "x": 4,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "未知",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469517564&di=69385954aae4f72ebd1152521b05399f&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F012e2f59c90717a8012053f8536397.jpg%402o.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 3,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "敢死队",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469517564&di=6022d5adfc076eadf49fbdc47c40c07c&imgtype=0&src=http%3A%2F%2Fpic16.photophoto.cn%2F20100905%2F0020033086627885_b.jpg"
+            }
+          },
+          {
+            "style": 2,
+            "x": 4,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "惊悚",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469574020&di=f99fd20aaea0b25b073268af288e5d11&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F0146285a0d22fea801204a0e59beac.jpg%403000w_1l_2o_100sh.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

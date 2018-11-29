@@ -16,7 +16,8 @@ public class Cell extends Rect implements Serializable {
     private static final int FLAG_VISIBLE = 1;
     // 0: empty, 1: content view
     private static final int FLAG_HAS_CONTENT = FLAG_VISIBLE << 1;
-    private static final int FLAG_HAS_FOCUS = FLAG_HAS_CONTENT << 1;
+    private static final int FLAG_FOCUSABLE = FLAG_HAS_CONTENT << 1;
+    private static final int FLAG_NO_HOLDER = FLAG_FOCUSABLE << 1;
 
     private static int ID_OFFSET = 0;
     private final int id;
@@ -123,16 +124,28 @@ public class Cell extends Rect implements Serializable {
         return (state & FLAG_VISIBLE) != 0;
     }
 
-    public final void setHasFocus(boolean is) {
+    public final void setFocusable(boolean is) {
         if (is) {
-            state |= FLAG_HAS_FOCUS;
+            state |= FLAG_FOCUSABLE;
         } else {
-            state &= ~FLAG_HAS_FOCUS;
+            state &= ~FLAG_FOCUSABLE;
         }
     }
 
-    public final boolean hasFocus() {
-        return (state & FLAG_HAS_FOCUS) != 0;
+    public final boolean isFocusable() {
+        return (state & FLAG_FOCUSABLE) != 0;
+    }
+
+    public final void setNoHolder(boolean is) {
+        if (is) {
+            state |= FLAG_NO_HOLDER;
+        } else {
+            state &= ~FLAG_NO_HOLDER;
+        }
+    }
+
+    public final boolean isNoHolder() {
+        return (state & FLAG_NO_HOLDER) != 0;
     }
 
     @Override
