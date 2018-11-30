@@ -45,6 +45,15 @@ public class CellGroup extends Cell {
         subCells.add(cell);
     }
 
+    public void merge(Cell cell) {
+        final CellGroup.Params p = cell.getParams();
+        if (null != p) {
+            addCell(cell, p);
+        } else {
+            addCell(cell);
+        }
+    }
+
     public void removeCell(Cell cell) {
         if (null == cell) {
             return;

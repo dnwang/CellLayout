@@ -1,6 +1,5 @@
 package org.pinwheel.view.celllayout;
 
-import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -31,23 +30,23 @@ public final class CellFactory {
     private static final String ATTR_GROUP_GRID = "grid";
     private static final String ATTR_GROUP_LINEAR = "linear";
 
-    public static CellBundle load(String jsonString) throws JSONException {
+    public static Bundle load(String jsonString) throws JSONException {
         return load(new JSONObject(jsonString));
     }
 
-    public static CellBundle load(JSONObject json) throws JSONException {
+    public static Bundle load(JSONObject json) throws JSONException {
         final int version = json.getInt(ATTR_VERSION);
         if (version <= 1) {
             IParser parser = new DefaultParser();
             parser.parse(json);
-            return new CellBundle(parser.getRoot(), parser.getDataMap());
+            return new Bundle(parser.getRoot(), parser.getDataMap());
         } else {
             throw new JSONException("can't found this special version parser ! version:" + version);
         }
     }
 
     private static final class DefaultParser implements IParser {
-        private SparseArray<Bundle> dataMap;
+        private SparseArray<android.os.Bundle> dataMap;
         private Cell root;
 
         @Override
@@ -61,7 +60,7 @@ public final class CellFactory {
         }
 
         @Override
-        public SparseArray<Bundle> getDataMap() {
+        public SparseArray<android.os.Bundle> getDataMap() {
             return dataMap;
         }
 
@@ -87,16 +86,18 @@ public final class CellFactory {
                     parse(subArgsList.getJSONObject(i), (CellGroup) cell);
                 }
             }
-            if (null != parent) {
-                final CellGroup.Params p = parent.getDefaultParams();
-                bindingArgs(p, args);
+            final CellGroup.Params p = null != parent ? parent.getDefaultParams() : new CellGroup.Params();
+            bindingArgs(p, args);
+            if (null == parent) {
+                cell.setParams(p);
+            } else {
                 parent.addCell(cell, p);
             }
             return cell;
         }
 
         private void saveCellData(int cellId, JSONObject json) {
-            final Bundle data = (null != json && json.length() > 0) ? new Bundle() : null;
+            final android.os.Bundle data = (null != json && json.length() > 0) ? new android.os.Bundle() : null;
             if (null != data) {
                 Iterator<String> iterable = json.keys();
                 while (iterable.hasNext()) {
@@ -179,16 +180,16 @@ public final class CellFactory {
     private interface IParser {
         void parse(JSONObject json) throws JSONException;
 
-        SparseArray<Bundle> getDataMap();
+        SparseArray<android.os.Bundle> getDataMap();
 
         Cell getRoot();
     }
 
-    public static final class CellBundle {
+    public static final class Bundle {
         public final Cell root;
-        public final SparseArray<Bundle> dataMap;
+        public final SparseArray<android.os.Bundle> dataMap;
 
-        CellBundle(Cell root, SparseArray<Bundle> dataMap) {
+        Bundle(Cell root, SparseArray<android.os.Bundle> dataMap) {
             this.root = root;
             this.dataMap = dataMap;
         }

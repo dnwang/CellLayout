@@ -48,6 +48,23 @@ public class LinearGroup extends CellGroup {
     }
 
     @Override
+    public void merge(Cell cell) {
+        if (cell instanceof LinearGroup && ((LinearGroup) cell).getOrientation() == orientation) {
+            // unboxing
+            CellGroup group = (CellGroup) cell;
+            int size = group.getCellCount();
+            while (size > 0) {
+                Cell tmp = group.getCellAt(0);
+                tmp.removeFromParent();
+                addCell(tmp, tmp.getParams());
+                size--;
+            }
+        } else {
+            super.merge(cell);
+        }
+    }
+
+    @Override
     protected void measure(final int width, final int height) {
         super.measure(width, height);
         final int size = getCellCount();

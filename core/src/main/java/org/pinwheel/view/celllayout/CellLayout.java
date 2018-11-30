@@ -152,6 +152,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         director.forceLayout();
     }
 
+    public Cell getRoot() {
+        return director.getRoot();
+    }
+
     public void setOnSelectChangedListener(OnSelectChangedListener onSelectChangedListener) {
         this.onSelectChangedListener = onSelectChangedListener;
     }
@@ -895,8 +899,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
         @Override
         public void onDraw(Canvas canvas, Cell cell, int l, int t) {
-            if (cell.isFocusable()) {
-                // just draw focusable cell
+            if (!cell.isNoHolder()) {
                 canvas.drawRect(l, t, l + cell.width(), t + cell.height(), paint);
             }
         }

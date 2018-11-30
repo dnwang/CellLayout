@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.content.res.XmlResourceParser;
 import android.graphics.Color;
-import android.os.Bundle;
 import android.os.Environment;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -38,10 +37,10 @@ import java.lang.reflect.Method;
 public final class MainActivity extends Activity {
 
     private CellLayout cellLayout;
-    private SparseArray<Bundle> dataMaps;
+    private SparseArray<android.os.Bundle> dataMaps;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         cellLayout = findViewById(R.id.cell_layout);
@@ -52,7 +51,7 @@ public final class MainActivity extends Activity {
 
     private void loadSingle() {
         try {
-            CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("sample.json")));
+            CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("sample.json")));
             dataMaps = bundle.dataMap;
             cellLayout.setRoot(bundle.root);
         } catch (JSONException e) {
@@ -68,60 +67,55 @@ public final class MainActivity extends Activity {
         root.setDivider(20);
         root.setPadding(80, 80, 80, 80);
         final String[] groupNames = new String[]{
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_0.json",
-                "group_1.json",
-                "group_2.json",
-                "group_2.json",
-                "group_1.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
-                "group_2.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_0.json",
+                "template_1.json",
+                "template_2.json",
+                "template_2.json",
+                "template_1.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
         };
         for (String groupName : groupNames) {
             try {
-                CellFactory.CellBundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open(groupName)));
-                CellGroup group = (CellGroup) bundle.root;
-                int size = group.getCellCount();
-                while (size > 0) {
-                    Cell cell = group.getCellAt(0);
-                    cell.removeFromParent();
-                    root.addCell(cell, cell.getParams());
-                    size--;
-                }
-                size = bundle.dataMap.size();
+                CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open(groupName)));
+                // cell
+                root.merge(bundle.root);
+                // data
+                final int size = bundle.dataMap.size();
                 for (int i = 0; i < size; i++) {
                     dataMaps.put(bundle.dataMap.keyAt(i), bundle.dataMap.valueAt(i));
                 }
@@ -136,7 +130,7 @@ public final class MainActivity extends Activity {
             .addStyle(new StyleAdapter.Style(R.layout.item_style_movie) {
                 @Override
                 public void onBind(Cell cell, StyleAdapter.Holder holder) {
-                    final Bundle args = dataMaps.get(cell.getId());
+                    final android.os.Bundle args = dataMaps.get(cell.getId());
                     final TextView text = holder.get(R.id.desc);
                     final ImageView image = holder.get(R.id.image);
                     final String title = null != args ? args.getString("title") : "";
@@ -155,7 +149,7 @@ public final class MainActivity extends Activity {
             .addStyle(2, new StyleAdapter.Style(R.layout.item_style_poster) {
                 @Override
                 public void onBind(Cell cell, StyleAdapter.Holder holder) {
-                    final Bundle args = dataMaps.get(cell.getId());
+                    final android.os.Bundle args = dataMaps.get(cell.getId());
                     final String posterUrl = null != args ? args.getString("poster") : null;
                     BitmapLoader.INSTANCE.display((ImageView) holder.get(R.id.image), posterUrl);
                 }
@@ -166,12 +160,17 @@ public final class MainActivity extends Activity {
                     text.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
                     text.setText("付费");
                 }
+
+                @Override
+                public void onRecycled(Cell cell, StyleAdapter.Holder holder) {
+                    ((ImageView) holder.get(R.id.image)).setImageResource(0);
+                }
             })
             .addStyle(1, new StyleAdapter.Style(R.layout.item_style_title) {
                 @Override
                 public void onBind(Cell cell, StyleAdapter.Holder holder) {
                     cell.setNoHolder(true); // 滑动的时候始终展示，不用站位图代替
-                    final Bundle args = dataMaps.get(cell.getId());
+                    final android.os.Bundle args = dataMaps.get(cell.getId());
                     final String title = null != args ? args.getString("title") : "";
                     TextView text = (TextView) holder.view;
                     text.setText(title);
@@ -180,6 +179,23 @@ public final class MainActivity extends Activity {
 
     private void initCellLayout() {
         cellLayout.setAdapter(adapter);
+        cellLayout.setOnSelectChangedListener(new CellLayout.OnSelectChangedListener() {
+            @Override
+            public void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView) {
+
+            }
+        });
+        cellLayout.setOnScrollListener(new CellLayout.OnScrollListener() {
+            @Override
+            public void onScroll(CellGroup group, int dx, int dy) {
+
+            }
+
+            @Override
+            public void onScrollComplete() {
+
+            }
+        });
     }
 
     private static int getColor() {

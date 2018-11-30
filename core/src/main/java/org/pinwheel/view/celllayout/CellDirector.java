@@ -75,7 +75,6 @@ final class CellDirector {
 
     boolean scrollTo(final CellGroup group, final int x, final int y) {
         if (null == group) return false;
-        final long begin = System.nanoTime();
         final int scrollX = group.scrollX;
         final int scrollY = group.scrollY;
         group.scrollTo(x, y);
@@ -87,7 +86,6 @@ final class CellDirector {
         Sync.execute(new Sync.Function<Collection<Cell>>() {
             @Override
             public Collection<Cell> call() {
-                final long begin = System.nanoTime();
                 final Set<Cell> stateChangedCells = new HashSet<>();
                 group.foreachAllCells(true, new Filter<Cell>() {
                     @Override
@@ -100,7 +98,6 @@ final class CellDirector {
                         return false;
                     }
                 });
-                Log.e(CellLayout.TAG, "[offset] " + (System.nanoTime() - begin) / 1000000f);
                 return stateChangedCells;
             }
         }, new Sync.Action<Collection<Cell>>() {
@@ -112,7 +109,6 @@ final class CellDirector {
             }
         });
         onScroll(group, dx, dy);
-        Log.e(CellLayout.TAG, "[scrollTo] " + (System.nanoTime() - begin) / 1000000f);
         return true;
     }
 
