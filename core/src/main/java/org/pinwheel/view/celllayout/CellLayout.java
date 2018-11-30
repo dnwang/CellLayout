@@ -105,7 +105,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         Sync.release();
     }
 
-    private OnScrollListener onScrollListener;
     private OnSelectChangedListener onSelectChangedListener;
 
     private final CellDirector director = new CellDirector();
@@ -156,12 +155,16 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         return director.getRoot();
     }
 
-    public void setOnSelectChangedListener(OnSelectChangedListener onSelectChangedListener) {
-        this.onSelectChangedListener = onSelectChangedListener;
+    public void setOnSelectChangedListener(OnSelectChangedListener listener) {
+        this.onSelectChangedListener = listener;
     }
 
-    public void setOnScrollListener(OnScrollListener onScrollListener) {
-        this.onScrollListener = onScrollListener;
+    public void setOnRootCellScrollListener(CellGroup.OnScrollListener listener) {
+        if (!director.hasRoot()) return;
+        final Cell root = director.getRoot();
+        if (root instanceof CellGroup) {
+            ((CellGroup) root).setOnScrollListener(listener);
+        }
     }
 
     public Cell findCellByView(View v) {
@@ -525,16 +528,16 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             cell.computeParentScroll();
             final int l = cell.getLayoutXWithParentScroll();
             final int t = cell.getLayoutYWithParentScroll();
+            canvas.save();
+            canvas.translate(l - child.getLeft(), t - child.getTop());
+            final boolean result = super.drawChild(canvas, child, drawingTime);
+            canvas.restore();
             // cellLayout has focus
             if (null != borderDrawable && hasFocus() && cell == focusManager.getFocus()) {
                 canvas.save();
                 borderDrawable.onDraw(canvas, cell, l, t, child.getScaleX(), child.getScaleY());
                 canvas.restore();
             }
-            canvas.save();
-            canvas.translate(l - child.getLeft(), t - child.getTop());
-            final boolean result = super.drawChild(canvas, child, drawingTime);
-            canvas.restore();
             return result;
         } else {
             return false;
@@ -550,13 +553,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
-    public void onScroll(CellGroup group, int dx, int dy) {
-        if (null != onScrollListener) {
-            onScrollListener.onScroll(group, dx, dy);
-        }
-    }
-
-    @Override
     public void onVisibleChanged(Cell cell) {
         if (cell instanceof CellGroup) return; // don't care group
         viewManager.onVisibleChanged(cell);
@@ -569,10 +565,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         // recycle should be in last
         viewManager.checkAndReleaseCache(false);
         viewManager.logInfo();
-
-        if (null != onScrollListener) {
-            onScrollListener.onScrollComplete();
-        }
     }
 
     public interface HolderDrawable {
@@ -595,12 +587,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     public interface OnSelectChangedListener {
         void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView);
-    }
-
-    public interface OnScrollListener {
-        void onScroll(CellGroup group, int dx, int dy);
-
-        void onScrollComplete();
     }
 
     private final class ViewManager {
@@ -749,12 +735,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void logInfo() {
             // log viewManager info
             final int size = poolMap.size();
-            Log.d(TAG, "[info] ------- CellLayout -------");
+            Log.i(TAG, "[info] ------- CellLayout -------");
             for (int i = 0; i < size; i++) {
-                Log.d(TAG, "[info] poolMap_style_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
+                Log.i(TAG, "[info] poolMap_style_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
             }
-            Log.d(TAG, "[info] activeCells size: " + activeCells.size());
-            Log.d(TAG, "[info] --------------------------");
+            Log.i(TAG, "[info] activeCells size: " + activeCells.size());
+            Log.i(TAG, "[info] --------------------------");
         }
     }
 
@@ -818,10 +804,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             if (null == from) return;
             final CellGroup root = (CellGroup) director.getRoot();
             final int maxWidth, maxHeight;
-            if (root instanceof LinearGroup) {
-                LinearGroup linear = (LinearGroup) root;
-                maxWidth = linear.getContentWidth();
-                maxHeight = linear.getContentHeight();
+            if (root instanceof IScrollContent) {
+                final IScrollContent contentGroup = (IScrollContent) root;
+                maxWidth = contentGroup.getContentWidth();
+                maxHeight = contentGroup.getContentHeight();
             } else {
                 maxWidth = root.width();
                 maxHeight = root.height();

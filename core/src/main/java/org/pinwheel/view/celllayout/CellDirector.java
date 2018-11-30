@@ -23,6 +23,10 @@ final class CellDirector {
     private static final int FLAG_NO_LAYOUT = 1;
     private int state = 0;
 
+    void setCallback(LifeCycleCallback callback) {
+        this.callback = callback;
+    }
+
     boolean hasRoot() {
         return null != root;
     }
@@ -35,8 +39,29 @@ final class CellDirector {
         return root;
     }
 
-    void setCallback(LifeCycleCallback callback) {
-        this.callback = callback;
+    void forceLayout() {
+        state |= FLAG_NO_LAYOUT;
+    }
+
+    void layout(int left, int top, int width, int height) {
+        if (hasRoot() && (state & FLAG_NO_LAYOUT) != 0) {
+            Log.d(CellLayout.TAG, "[director.layout] l: " + left + ", t: " + top + ", w: " + width + ", h: " + height);
+            state &= ~FLAG_NO_LAYOUT; // clear flag
+            root.measure(width, height);
+            root.layout(left, top);
+            //
+            foreachAllCells(true, new Filter<Cell>() {
+                @Override
+                public boolean call(Cell cell) {
+                    // set visible state
+                    setVisibleState(cell);
+                    // force notify outSide
+                    onCellVisibleChanged(cell);
+                    return false;
+                }
+            });
+            onCellLayout();
+        }
     }
 
     private Cell tmp = null;
@@ -70,19 +95,21 @@ final class CellDirector {
 
     boolean scrollBy(final CellGroup group, final int dx, final int dy) {
         if (null == group) return false;
-        return scrollTo(group, group.scrollX + dx, group.scrollY + dy);
+        return scrollTo(group, group.getScrollX() + dx, group.getScrollY() + dy);
     }
 
     boolean scrollTo(final CellGroup group, final int x, final int y) {
         if (null == group) return false;
-        final int scrollX = group.scrollX;
-        final int scrollY = group.scrollY;
+        final int scrollX = group.getScrollX();
+        final int scrollY = group.getScrollY();
         group.scrollTo(x, y);
-        final int dx = group.scrollX - scrollX;
-        final int dy = group.scrollY - scrollY;
+        final int dx = group.getScrollX() - scrollX;
+        final int dy = group.getScrollY() - scrollY;
         if (0 == dx && 0 == dy) {
             return false;
         }
+        notifyGroupScroll(group, dx, dy);
+        scrollingGroups.add(group);
         Sync.execute(new Sync.Function<Collection<Cell>>() {
             @Override
             public Collection<Cell> call() {
@@ -108,32 +135,35 @@ final class CellDirector {
                 }
             }
         });
-        onScroll(group, dx, dy);
         return true;
     }
 
-    void forceLayout() {
-        state |= FLAG_NO_LAYOUT;
-    }
+    private final Set<CellGroup> scrollingGroups = new HashSet<>(2);
 
-    void layout(int left, int top, int width, int height) {
-        if (hasRoot() && (state & FLAG_NO_LAYOUT) != 0) {
-            Log.e(CellLayout.TAG, "[director.Layout] l: " + left + ", t: " + top + ", w: " + width + ", h: " + height);
-            state &= ~FLAG_NO_LAYOUT; // clear flag
-            root.measure(width, height);
-            root.layout(left, top);
-            //
-            foreachAllCells(true, new Filter<Cell>() {
-                @Override
-                public boolean call(Cell cell) {
-                    // set visible state
-                    setVisibleState(cell);
-                    // force notify outSide
-                    onCellVisibleChanged(cell);
-                    return false;
+    private void notifyGroupScroll(CellGroup group, int dx, int dy) {
+        if (null != group && null != group.onScrollListener) {
+            group.onScrollListener.onScroll(group, dx, dy);
+            if (group instanceof IScrollContent) {
+                final IScrollContent contentGroup = (IScrollContent) root;
+                final int maxWidth = contentGroup.getContentWidth();
+                final int maxHeight = contentGroup.getContentHeight();
+                if (0 != dx) {
+                    final int scrollX = group.getScrollX();
+                    if (0 <= scrollX) { // left
+                        group.onScrollListener.onScrollToStart(group);
+                    } else if (scrollX <= group.width() - maxWidth) { // right
+                        group.onScrollListener.onScrollToEnd(group);
+                    }
                 }
-            });
-            onCellLayout();
+                if (0 != dy) {
+                    final int scrollY = group.getScrollY();
+                    if (0 <= scrollY) { // top
+                        group.onScrollListener.onScrollToStart(group);
+                    } else if (scrollY <= group.height() - maxHeight) { // bottom
+                        group.onScrollListener.onScrollToEnd(group);
+                    }
+                }
+            }
         }
     }
 
@@ -145,6 +175,13 @@ final class CellDirector {
                 if (null != callback) {
                     callback.onScrollComplete();
                 }
+                // notify outside listener
+                for (CellGroup group : scrollingGroups) {
+                    if (null != group && null != group.onScrollListener) {
+                        group.onScrollListener.onScrollComplete(group);
+                    }
+                }
+                scrollingGroups.clear();
             }
         });
     }
@@ -167,12 +204,6 @@ final class CellDirector {
         }
     }
 
-    private void onScroll(CellGroup group, int dx, int dy) {
-        if (null != callback) {
-            callback.onScroll(group, dx, dy);
-        }
-    }
-
     private void onCellLayout() {
         if (null != callback) {
             callback.onCellLayout();
@@ -187,8 +218,6 @@ final class CellDirector {
 
     interface LifeCycleCallback {
         void onCellLayout();
-
-        void onScroll(CellGroup group, int dx, int dy);
 
         void onVisibleChanged(Cell cell);
 

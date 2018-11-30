@@ -9,7 +9,7 @@ package org.pinwheel.view.celllayout;
  * @author dnwang
  * @version 2018/11/15,11:32
  */
-public class LinearGroup extends CellGroup {
+public class LinearGroup extends CellGroup implements IScrollContent {
 
     public static final int HORIZONTAL = 0;
     public static final int VERTICAL = 1;
@@ -119,16 +119,19 @@ public class LinearGroup extends CellGroup {
                 Math.max(height() - contentHeight, Math.min(y, 0)));
     }
 
+    @Override
     public int getContentWidth() {
         return contentWidth;
     }
 
+    @Override
     public int getContentHeight() {
         return contentHeight;
     }
 
     private int contentWidth, contentHeight;
 
+    @Override
     public void measureContent() {
         contentWidth = 0;
         contentHeight = 0;

@@ -15,6 +15,8 @@ import java.util.List;
  */
 public class CellGroup extends Cell {
 
+    OnScrollListener onScrollListener;
+
     private final List<Cell> subCells = new ArrayList<>();
 
     CellGroup() {
@@ -73,11 +75,19 @@ public class CellGroup extends Cell {
         return subCells.size();
     }
 
-    int scrollX, scrollY;
+    private int scrollX, scrollY;
 
     public void scrollTo(int x, int y) {
         scrollX = x;
         scrollY = y;
+    }
+
+    public int getScrollX() {
+        return scrollX;
+    }
+
+    public int getScrollY() {
+        return scrollY;
     }
 
     @Override
@@ -142,6 +152,10 @@ public class CellGroup extends Cell {
         return intercept;
     }
 
+    public void setOnScrollListener(OnScrollListener onScrollListener) {
+        this.onScrollListener = onScrollListener;
+    }
+
     public static class Params implements Serializable {
         @Attribute("style")
         public int styleId = 0;
@@ -157,6 +171,34 @@ public class CellGroup extends Cell {
         public Params(int width, int height) {
             this.width = width;
             this.height = height;
+        }
+    }
+
+    public interface OnScrollListener {
+        void onScroll(CellGroup group, int dx, int dy);
+
+        void onScrollComplete(CellGroup group);
+
+        void onScrollToStart(CellGroup group);
+
+        void onScrollToEnd(CellGroup group);
+    }
+
+    public static class OnScrollAdapter implements OnScrollListener {
+        @Override
+        public void onScroll(CellGroup group, int dx, int dy) {
+        }
+
+        @Override
+        public void onScrollComplete(CellGroup group) {
+        }
+
+        @Override
+        public void onScrollToStart(CellGroup group) {
+        }
+
+        @Override
+        public void onScrollToEnd(CellGroup group) {
         }
     }
 

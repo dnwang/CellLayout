@@ -6,6 +6,7 @@ import android.content.res.AssetManager;
 import android.content.res.XmlResourceParser;
 import android.graphics.Color;
 import android.os.Environment;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,34 +36,21 @@ import java.lang.reflect.Method;
  * @version 2018/11/15,11:18
  */
 public final class MainActivity extends Activity {
+    private static final String TAG = "MainActivity";
 
     private CellLayout cellLayout;
-    private SparseArray<android.os.Bundle> dataMaps;
+    private final SparseArray<android.os.Bundle> dataMaps = new SparseArray<>();
 
     @Override
     protected void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         cellLayout = findViewById(R.id.cell_layout);
-        initCellLayout();
-//        loadSingle();
         loadGroup();
-    }
-
-    private void loadSingle() {
-        try {
-            CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("sample.json")));
-            dataMaps = bundle.dataMap;
-            cellLayout.setRoot(bundle.root);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        initCellLayout();
     }
 
     private void loadGroup() {
-        dataMaps = new SparseArray<>();
         final LinearGroup root = new LinearGroup(LinearGroup.VERTICAL);
         root.setDivider(20);
         root.setPadding(80, 80, 80, 80);
@@ -160,11 +148,6 @@ public final class MainActivity extends Activity {
                     text.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
                     text.setText("付费");
                 }
-
-                @Override
-                public void onRecycled(Cell cell, StyleAdapter.Holder holder) {
-                    ((ImageView) holder.get(R.id.image)).setImageResource(0);
-                }
             })
             .addStyle(1, new StyleAdapter.Style(R.layout.item_style_title) {
                 @Override
@@ -182,28 +165,35 @@ public final class MainActivity extends Activity {
         cellLayout.setOnSelectChangedListener(new CellLayout.OnSelectChangedListener() {
             @Override
             public void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView) {
-
+                Log.e(TAG, "[onSelectChanged] oldCell:" + oldCell + ", newCell: " + newCell);
             }
         });
-        cellLayout.setOnScrollListener(new CellLayout.OnScrollListener() {
+        cellLayout.setOnRootCellScrollListener(new CellGroup.OnScrollAdapter() {
             @Override
             public void onScroll(CellGroup group, int dx, int dy) {
-
+                Log.e(TAG, "[onScroll] group:" + group + ", dx: " + dx + ", dy: " + dy);
             }
 
             @Override
-            public void onScrollComplete() {
+            public void onScrollComplete(CellGroup group) {
+                Log.e(TAG, "[onScrollComplete] group:" + group);
+            }
 
+            @Override
+            public void onScrollToStart(CellGroup group) {
+                Log.e(TAG, "[onScrollToStart] group:" + group);
+            }
+
+            @Override
+            public void onScrollToEnd(CellGroup group) {
+                Log.e(TAG, "[onScrollToEnd] group:" + group);
             }
         });
     }
 
-    private static int getColor() {
-        return Color.rgb((int) (Math.random() * 255),
-                (int) (Math.random() * 255),
-                (int) (Math.random() * 255));
-    }
-
+    /**
+     * load layout.xml from sdcard
+     */
     private static View loadLayout(Context ctx, File file) {
         try {
             AssetManager am = ctx.getResources().getAssets();

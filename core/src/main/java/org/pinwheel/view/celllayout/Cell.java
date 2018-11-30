@@ -126,8 +126,8 @@ public class Cell extends Rect implements Serializable {
     }
 
     private void computeParentScroll(CellGroup p) {
-        parentScrollX += p.scrollX;
-        parentScrollY += p.scrollY;
+        parentScrollX += p.getScrollX();
+        parentScrollY += p.getScrollY();
         CellGroup pp = p.getParent();
         if (null != pp) {
             computeParentScroll(pp);
