@@ -1,10 +1,12 @@
 package org.pinwheel.view.celllayout;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -50,16 +52,57 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         this.init();
     }
 
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public CellLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        this.init();
+    }
+
+    @Override
+    public void addView(View child) {
+        throw new UnsupportedOperationException("addView(View) is not supported in CellLayout");
+    }
+
+    @Override
+    public void addView(View child, int index) {
+        throw new UnsupportedOperationException("addView(View, int) is not supported in CellLayout");
+    }
+
+    @Override
+    public void addView(View child, LayoutParams params) {
+        throw new UnsupportedOperationException("addView(View, LayoutParams) is not supported in CellLayout");
+    }
+
+    @Override
+    public void addView(View child, int index, LayoutParams params) {
+        throw new UnsupportedOperationException("addView(View, int, LayoutParams) is not supported in CellLayout");
+    }
+
+    @Override
+    public void removeView(View child) {
+        throw new UnsupportedOperationException("removeView(View) is not supported in CellLayout");
+    }
+
+    @Override
+    public void removeViewAt(int index) {
+        throw new UnsupportedOperationException("removeViewAt(int) is not supported in CellLayout");
+    }
+
+    @Override
+    public void removeAllViews() {
+        throw new UnsupportedOperationException("removeAllViews() is not supported in CellLayout");
+    }
+
     @Override
     protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
         Sync.prepare();
+        super.onAttachedToWindow();
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        Sync.release();
         super.onDetachedFromWindow();
+        Sync.release();
     }
 
     private OnScrollListener onScrollListener;
@@ -71,11 +114,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     private int flag = 0;
 
-    private Paint holderPaint = new Paint();
-    private Paint focusPaint = new Paint();
-    private static final int FOCUS_STOKE_WIDTH = 4;
-    private static final boolean FOCUS_HIGHLIGHT = true;
-    private static final boolean FOCUS_SCALE = true;
+    private HolderDrawable holderDrawable;
+    private BorderDrawable borderDrawable;
+
+    private static final boolean SCALE_FOCUS = true;
 
     private void init() {
         director.setCallback(this);
@@ -84,17 +126,22 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         setChildrenDrawingOrderEnabled(true);
 //        setWillNotDraw(false);
 
-        holderPaint.setColor(Color.parseColor("#4F586E"));
-        focusPaint.setColor(Color.WHITE);
-        focusPaint.setStyle(Paint.Style.STROKE);
-        focusPaint.setStrokeWidth(FOCUS_STOKE_WIDTH);
+        holderDrawable = new DefHolderDrawable();
+        borderDrawable = new DefBorderDrawable();
+    }
+
+    public void setHolderDrawable(HolderDrawable drawable) {
+        this.holderDrawable = drawable;
+    }
+
+    public void setBorderDrawable(BorderDrawable drawable) {
+        this.borderDrawable = drawable;
     }
 
     public void setAdapter(ViewAdapter adapter) {
         if (adapter instanceof StyleAdapter) {
-            final StyleAdapter a = (StyleAdapter) adapter;
-            a.inflater = LayoutInflater.from(getContext());
-            setOnSelectChangedListener(a);
+            final StyleAdapter tmp = (StyleAdapter) adapter;
+            tmp.inflater = LayoutInflater.from(getContext());
         }
         viewManager.setAdapter(adapter);
     }
@@ -121,8 +168,39 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         return viewManager.findViewByCell(cell);
     }
 
+    public void setFocus(View view) {
+        final Cell cell = viewManager.findCellByView(view);
+        if (null != cell) {
+            setFocus(cell);
+        }
+    }
+
+    public void setFocus(Cell cell) {
+        focusManager.setFocus(cell);
+    }
+
+    @Override
+    public void scrollTo(int x, int y) {
+        if (!director.hasRoot()) return;
+        final Cell root = director.getRoot();
+        final int dx = x - root.getLeft(), dy = y - root.getTop();
+        scrollBy(dx, dy);
+    }
+
+    @Override
+    public void scrollBy(int dx, int dy) {
+        if (!director.hasRoot()) return;
+        final Cell root = director.getRoot();
+        if (root instanceof CellGroup) {
+            if (director.scrollBy((CellGroup) root, dx, dy)) {
+                invalidate();
+                director.notifyScrollComplete();
+            }
+        }
+    }
+
     @Deprecated
-    public void keepCellCenter(Cell cell, boolean withAnimation) {
+    public void scrollToCenter(Cell cell, boolean withAnimation) {
         if (!director.hasRoot() || null == cell) {
             return;
         }
@@ -146,6 +224,37 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 }
             }.execute();
         }
+    }
+
+    private abstract class AutoMovingAction {
+        int sum;
+        final int unitX, unitY;
+
+        AutoMovingAction(int dx, int dy) {
+            final int absDx = Math.abs(dx);
+            final int absDy = Math.abs(dy);
+            sum = Math.max(absDx, absDy) > 300 ? 6 : 4;
+            unitX = absDx > sum ? (dx / sum) : (0 != dx ? (dx / absDx) : 0);
+            unitY = absDy > sum ? (dy / sum) : (0 != dy ? (dy / absDy) : 0);
+        }
+
+        final void execute() {
+            flag |= FLAG_MOVING_AUTO;
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    onMove(unitX, unitY);
+                    if (sum-- > 0) {
+                        post(this);
+                    } else {
+                        flag &= ~FLAG_MOVING_AUTO;
+                        director.notifyScrollComplete();
+                    }
+                }
+            });
+        }
+
+        abstract void onMove(final int dx, final int dy);
     }
 
     private final static float SCALE_MAX = 1.1f;
@@ -188,37 +297,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    private abstract class AutoMovingAction {
-        int sum;
-        final int unitX, unitY;
-
-        AutoMovingAction(int dx, int dy) {
-            final int absDx = Math.abs(dx);
-            final int absDy = Math.abs(dy);
-            sum = Math.max(absDx, absDy) > 300 ? 6 : 4;
-            unitX = absDx > sum ? (dx / sum) : (0 != dx ? (dx / absDx) : 0);
-            unitY = absDy > sum ? (dy / sum) : (0 != dy ? (dy / absDy) : 0);
-        }
-
-        final void execute() {
-            flag |= FLAG_MOVING_AUTO;
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    onMove(unitX, unitY);
-                    if (sum-- > 0) {
-                        post(this);
-                    } else {
-                        flag &= ~FLAG_MOVING_AUTO;
-                        director.notifyScrollComplete();
-                    }
-                }
-            });
-        }
-
-        abstract void onMove(final int dx, final int dy);
-    }
-
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if (changed) {
@@ -259,11 +337,14 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 final boolean tmp = (flag & FLAG_MOVING_TOUCH) != 0;
-                touchCell = null;
                 flag &= ~FLAG_MOVING_TOUCH;
                 if (tmp) {
                     director.notifyScrollComplete();
                 }
+                if (tmp && null != touchCell) {
+                    focusManager.setFocus(touchCell);
+                }
+                touchCell = null;
                 getParent().requestDisallowInterceptTouchEvent(false);
                 return superState;
             default:
@@ -285,12 +366,23 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     private final LongKeyPressDirector longKeyPressDirector = new LongKeyPressDirector() {
         @Override
         public boolean interceptLongPress(int keyCode) {
-//            return KeyEvent.KEYCODE_DPAD_LEFT == keyCode
-//                    || KeyEvent.KEYCODE_DPAD_UP == keyCode
-//                    || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
-//                    || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
-            return KeyEvent.KEYCODE_DPAD_UP == keyCode
-                    || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
+            if (!director.hasRoot()) return false;
+            final Cell root = director.getRoot();
+            if (root instanceof LinearGroup) {
+                final int orientation = ((LinearGroup) root).getOrientation();
+                if (LinearGroup.HORIZONTAL == orientation) {
+                    return KeyEvent.KEYCODE_DPAD_LEFT == keyCode
+                            || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode;
+                } else {
+                    return KeyEvent.KEYCODE_DPAD_UP == keyCode
+                            || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
+                }
+            } else {
+                return KeyEvent.KEYCODE_DPAD_LEFT == keyCode
+                        || KeyEvent.KEYCODE_DPAD_UP == keyCode
+                        || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+                        || KeyEvent.KEYCODE_DPAD_DOWN == keyCode;
+            }
         }
 
         private static final int OFFSET = 300;
@@ -375,26 +467,27 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         return longKeyPressDirector.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
-    private void drawEmptyHolder(final Canvas canvas) {
+    @Override
+    public void draw(Canvas canvas) {
+        focusOrder = -1;
+        super.draw(canvas);
+        onDrawHolders(canvas);
+    }
+
+    private void onDrawHolders(final Canvas canvas) {
+        if (null == holderDrawable) return;
         viewManager.foreachActiveCells(new Filter<Cell>() {
             @Override
             public boolean call(Cell cell) {
                 if (!cell.hasContent()) {
                     cell.computeParentScroll();
-                    final int left = cell.getLayoutXWithParentScroll();
-                    final int top = cell.getLayoutYWithParentScroll();
-                    canvas.drawRect(left, top, left + cell.width(), top + cell.height(), holderPaint);
+                    final int l = cell.getLayoutXWithParentScroll();
+                    final int t = cell.getLayoutYWithParentScroll();
+                    holderDrawable.onDraw(canvas, cell, l, t);
                 }
                 return false;
             }
         });
-    }
-
-    @Override
-    public void draw(Canvas canvas) {
-        focusOrder = -1;
-        super.draw(canvas);
-        drawEmptyHolder(canvas);
     }
 
     private int focusOrder = -1;
@@ -429,13 +522,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             final int l = cell.getLayoutXWithParentScroll();
             final int t = cell.getLayoutYWithParentScroll();
             // cellLayout has focus
-            if (hasFocus() && FOCUS_HIGHLIGHT && cell == focusManager.getFocus()) {
-                float dw = cell.width() * (child.getScaleX() - 1);
-                float dh = cell.height() * (child.getScaleY() - 1);
+            if (null != borderDrawable && hasFocus() && cell == focusManager.getFocus()) {
                 canvas.save();
-                canvas.translate(l - dw / 2 - FOCUS_STOKE_WIDTH / 2, t - dh / 2 - FOCUS_STOKE_WIDTH / 2);
-                canvas.scale(child.getScaleX(), child.getScaleY());
-                canvas.drawRect(0, 0, cell.width() + FOCUS_STOKE_WIDTH, cell.height() + FOCUS_STOKE_WIDTH, focusPaint);
+                borderDrawable.onDraw(canvas, cell, l, t, child.getScaleX(), child.getScaleY());
                 canvas.restore();
             }
             canvas.save();
@@ -480,6 +569,14 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         if (null != onScrollListener) {
             onScrollListener.onScrollComplete();
         }
+    }
+
+    public interface HolderDrawable {
+        void onDraw(Canvas canvas, Cell cell, int l, int t);
+    }
+
+    public interface BorderDrawable {
+        void onDraw(Canvas canvas, Cell cell, int l, int t, float scaleX, float scaleY);
     }
 
     public interface ViewAdapter {
@@ -668,8 +765,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             final View from = viewManager.findViewByCell(focusCell);
             final View to = viewManager.findViewByCell(cell);
             if (null != from || null != to) {
-                if (FOCUS_SCALE) {
+                if (SCALE_FOCUS) {
                     new SwitchScaleAction(from, to).execute();
+                }
+                if (viewManager.adapter instanceof OnSelectChangedListener) {
+                    ((OnSelectChangedListener) viewManager.adapter).onSelectChanged(focusCell, from, cell, to);
                 }
                 if (null != onSelectChangedListener) {
                     onSelectChangedListener.onSelectChanged(focusCell, from, cell, to);
@@ -722,7 +822,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 maxWidth = root.width();
                 maxHeight = root.height();
             }
-            final LinearGroup group = (LinearGroup) director.getRoot();
             final Rect limitArea;
             switch (dir) {
                 case View.FOCUS_LEFT:
@@ -750,20 +849,20 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
                 @Override
                 public Cell call() {
-                    group.foreachAllCells(false, new Filter<Cell>() {
+                    root.foreachAllCells(false, new Filter<Cell>() {
                         @Override
                         public boolean call(Cell cell) {
                             if (cell.isFocusable() && Rect.intersects(limitArea, cell)) {
                                 if (null != tmp) {
                                     int d1, d2;
                                     if (View.FOCUS_LEFT == dir || View.FOCUS_RIGHT == dir) {
-                                        d1 = Math.abs(cell.getLeft() - from.getLeft());
-                                        d2 = Math.abs(tmp.getLeft() - from.getLeft());
+                                        d1 = Math.abs(tmp.getLeft() - from.getLeft());
+                                        d2 = Math.abs(cell.getLeft() - from.getLeft());
                                     } else {
-                                        d1 = Math.abs(cell.getTop() - from.getTop());
-                                        d2 = Math.abs(tmp.getTop() - from.getTop());
+                                        d1 = Math.abs(tmp.getTop() - from.getTop());
+                                        d2 = Math.abs(cell.getTop() - from.getTop());
                                     }
-                                    if (distance < d1 && d1 < d2) {
+                                    if (distance < d2 && (d1 < distance || d2 < d1)) {
                                         tmp = cell;
                                     }
                                 } else {
@@ -783,6 +882,45 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     }
                 }
             });
+        }
+    }
+
+    private static final class DefHolderDrawable implements HolderDrawable {
+        private Paint paint;
+
+        DefHolderDrawable() {
+            paint = new Paint();
+            paint.setColor(Color.parseColor("#4F586E"));
+        }
+
+        @Override
+        public void onDraw(Canvas canvas, Cell cell, int l, int t) {
+            if (cell.isFocusable()) {
+                // just draw focusable cell
+                canvas.drawRect(l, t, l + cell.width(), t + cell.height(), paint);
+            }
+        }
+    }
+
+    private static final class DefBorderDrawable implements BorderDrawable {
+        private static final int FOCUS_STOKE_WIDTH = 4;
+
+        private Paint paint;
+
+        DefBorderDrawable() {
+            paint = new Paint();
+            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(4);
+        }
+
+        @Override
+        public void onDraw(Canvas canvas, Cell cell, int l, int t, float scaleX, float scaleY) {
+            float dw = cell.width() * (scaleX - 1);
+            float dh = cell.height() * (scaleY - 1);
+            canvas.translate(l - dw / 2 - FOCUS_STOKE_WIDTH / 2, t - dh / 2 - FOCUS_STOKE_WIDTH / 2);
+            canvas.scale(scaleX, scaleY);
+            canvas.drawRect(0, 0, cell.width() + FOCUS_STOKE_WIDTH, cell.height() + FOCUS_STOKE_WIDTH, paint);
         }
     }
 
