@@ -47,6 +47,12 @@ public class CellGroup extends Cell {
         subCells.add(cell);
     }
 
+    @Override
+    protected void layout(int x, int y) {
+        super.layout(x, y);
+        scrollX = scrollY = 0;
+    }
+
     public void merge(Cell cell) {
         final CellGroup.Params p = cell.getParams();
         if (null != p) {

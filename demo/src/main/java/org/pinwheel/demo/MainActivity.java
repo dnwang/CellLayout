@@ -56,45 +56,7 @@ public final class MainActivity extends Activity {
         root.setPadding(80, 80, 80, 80);
         final String[] groupNames = new String[]{
                 "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
-                "template_0.json",
                 "template_1.json",
-                "template_2.json",
-                "template_2.json",
-                "template_1.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
-                "template_2.json",
                 "template_2.json",
         };
         for (String groupName : groupNames) {
@@ -111,7 +73,7 @@ public final class MainActivity extends Activity {
                 e.printStackTrace();
             }
         }
-        cellLayout.setRoot(root);
+        cellLayout.setContentCell(root);
     }
 
     private final StyleAdapter adapter = new StyleAdapter()
@@ -187,6 +149,19 @@ public final class MainActivity extends Activity {
             @Override
             public void onScrollToEnd(CellGroup group) {
                 Log.e(TAG, "[onScrollToEnd] group:" + group);
+                try {
+                    CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("template_2.json")));
+                    // cell
+                    cellLayout.addCell(bundle.root);
+                    // data
+                    final int size = bundle.dataMap.size();
+                    for (int i = 0; i < size; i++) {
+                        dataMaps.put(bundle.dataMap.keyAt(i), bundle.dataMap.valueAt(i));
+                    }
+                } catch (JSONException | IOException e) {
+                    e.printStackTrace();
+                }
+                cellLayout.notifyCellChanged();
             }
         });
     }

@@ -58,36 +58,49 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         this.init();
     }
 
+    @Deprecated
     @Override
     public void addView(View child) {
         throw new UnsupportedOperationException("addView(View) is not supported in CellLayout");
     }
 
+    @Deprecated
     @Override
     public void addView(View child, int index) {
         throw new UnsupportedOperationException("addView(View, int) is not supported in CellLayout");
     }
 
+    @Deprecated
     @Override
     public void addView(View child, LayoutParams params) {
         throw new UnsupportedOperationException("addView(View, LayoutParams) is not supported in CellLayout");
     }
 
+    @Deprecated
     @Override
     public void addView(View child, int index, LayoutParams params) {
         throw new UnsupportedOperationException("addView(View, int, LayoutParams) is not supported in CellLayout");
     }
 
+    @Deprecated
+    @Override
+    public void addView(View child, int width, int height) {
+        throw new UnsupportedOperationException("addView(View, int, int) is not supported in CellLayout");
+    }
+
+    @Deprecated
     @Override
     public void removeView(View child) {
         throw new UnsupportedOperationException("removeView(View) is not supported in CellLayout");
     }
 
+    @Deprecated
     @Override
     public void removeViewAt(int index) {
         throw new UnsupportedOperationException("removeViewAt(int) is not supported in CellLayout");
     }
 
+    @Deprecated
     @Override
     public void removeAllViews() {
         throw new UnsupportedOperationException("removeAllViews() is not supported in CellLayout");
@@ -145,14 +158,36 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         viewManager.setAdapter(adapter);
     }
 
-    public void setRoot(Cell root) {
+    public void setContentCell(Cell root) {
         viewManager.checkAndReleaseCache(true);
+        if (director.getRoot() instanceof CellGroup) { // clear
+            ((CellGroup) director.getRoot()).setOnScrollListener(null);
+        }
         director.setRoot(root);
         director.forceLayout();
     }
 
-    public Cell getRoot() {
+    public Cell getContentCell() {
         return director.getRoot();
+    }
+
+    public void addCell(Cell cell) {
+        if (!director.hasRoot()) return;
+        if (director.getRoot() instanceof CellGroup) {
+            ((CellGroup) director.getRoot()).merge(cell);
+        }
+    }
+
+    public void notifyCellChanged() {
+        // TODO: 2018/11/30
+        CellGroup group = (CellGroup) director.getRoot();
+        int scrollX = group.getScrollX();
+        int scrollY = group.getScrollY();
+        Cell focus = focusManager.getFocus();
+        director.reLayout();
+        // restore
+//        director.scrollBy(group, scrollX, scrollY);
+        focusManager.setFocus(focus);
     }
 
     public void setOnSelectChangedListener(OnSelectChangedListener listener) {
@@ -348,7 +383,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 if (tmp) {
                     director.notifyScrollComplete();
                 }
-                if (tmp && null != touchCell) {
+                if (!tmp && null != touchCell && touchCell.isFocusable()) {
                     focusManager.setFocus(touchCell);
                 }
                 touchCell = null;

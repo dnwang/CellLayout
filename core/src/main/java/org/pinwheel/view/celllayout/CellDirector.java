@@ -64,6 +64,13 @@ final class CellDirector {
         }
     }
 
+    void reLayout() {
+        forceLayout();
+        if (hasRoot()) {
+            layout(root.getLeft(), root.getTop(), root.width(), root.height());
+        }
+    }
+
     private Cell tmp = null;
 
     Cell findCellByPosition(final int x, final int y) {
