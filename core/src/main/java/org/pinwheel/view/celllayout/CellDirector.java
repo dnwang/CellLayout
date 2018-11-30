@@ -108,7 +108,6 @@ final class CellDirector {
         if (0 == dx && 0 == dy) {
             return false;
         }
-        notifyGroupScroll(group, dx, dy);
         scrollingGroups.add(group);
         Sync.execute(new Sync.Function<Collection<Cell>>() {
             @Override
@@ -133,6 +132,8 @@ final class CellDirector {
                 for (Cell cell : stateChangedCells) {
                     onCellVisibleChanged(cell);
                 }
+                // sync notify, don't use group.getScroll() in method
+                notifyGroupScroll(group, dx, dy);
             }
         });
         return true;
@@ -143,23 +144,26 @@ final class CellDirector {
     private void notifyGroupScroll(CellGroup group, int dx, int dy) {
         if (null != group && null != group.onScrollListener) {
             group.onScrollListener.onScroll(group, dx, dy);
-            if (group instanceof IScrollContent) {
-                final IScrollContent contentGroup = (IScrollContent) root;
-                final int maxWidth = contentGroup.getContentWidth();
-                final int maxHeight = contentGroup.getContentHeight();
-                if (0 != dx) {
-                    final int scrollX = group.getScrollX();
+        }
+    }
+
+    private void notifyGroupScrollComplete(CellGroup group) {
+        if (null != group && null != group.onScrollListener) {
+            group.onScrollListener.onScrollComplete(group);
+            if (group instanceof LinearGroup) {
+                final LinearGroup linear = (LinearGroup) group;
+                if (LinearGroup.HORIZONTAL == linear.getOrientation()) {
+                    int scrollX = group.getScrollX();
                     if (0 <= scrollX) { // left
                         group.onScrollListener.onScrollToStart(group);
-                    } else if (scrollX <= group.width() - maxWidth) { // right
+                    } else if (scrollX <= group.width() - linear.getContentWidth()) { // right
                         group.onScrollListener.onScrollToEnd(group);
                     }
-                }
-                if (0 != dy) {
-                    final int scrollY = group.getScrollY();
+                } else {
+                    int scrollY = group.getScrollY();
                     if (0 <= scrollY) { // top
                         group.onScrollListener.onScrollToStart(group);
-                    } else if (scrollY <= group.height() - maxHeight) { // bottom
+                    } else if (scrollY <= group.height() - linear.getContentHeight()) { // bottom
                         group.onScrollListener.onScrollToEnd(group);
                     }
                 }
@@ -177,9 +181,7 @@ final class CellDirector {
                 }
                 // notify outside listener
                 for (CellGroup group : scrollingGroups) {
-                    if (null != group && null != group.onScrollListener) {
-                        group.onScrollListener.onScrollComplete(group);
-                    }
+                    notifyGroupScrollComplete(group);
                 }
                 scrollingGroups.clear();
             }
