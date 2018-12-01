@@ -13,7 +13,7 @@ import java.util.List;
  * @author dnwang
  * @version 2018/11/15,14:01
  */
-public class CellGroup extends Cell {
+public class CellGroup extends Cell implements IScrollContent {
 
     OnScrollListener onScrollListener;
 
@@ -21,6 +21,15 @@ public class CellGroup extends Cell {
 
     CellGroup() {
         super();
+    }
+
+    public void merge(Cell cell) {
+        final CellGroup.Params p = cell.getParams();
+        if (null != p) {
+            addCell(cell, p);
+        } else {
+            addCell(cell);
+        }
     }
 
     public void addCell(Cell cell) {
@@ -32,6 +41,11 @@ public class CellGroup extends Cell {
     }
 
     public void addCell(Cell cell, Params p) {
+        addCellInner(cell, p);
+        requestMeasureAndLayout();
+    }
+
+    final void addCellInner(Cell cell, Params p) {
         final int id = null == cell ? -1 : cell.getId();
         if (id <= 0) {
             throw new IllegalStateException("cell id error !");
@@ -47,30 +61,37 @@ public class CellGroup extends Cell {
         subCells.add(cell);
     }
 
-    @Override
-    protected void layout(int x, int y) {
-        super.layout(x, y);
-        scrollX = scrollY = 0;
-    }
-
-    public void merge(Cell cell) {
-        final CellGroup.Params p = cell.getParams();
-        if (null != p) {
-            addCell(cell, p);
-        } else {
-            addCell(cell);
+    public boolean removeCell(Cell cell) {
+        final boolean result = removeCellInner(cell);
+        if (result) {
+            requestMeasureAndLayout();
         }
+        return result;
     }
 
-    public void removeCell(Cell cell) {
+    final boolean removeCellInner(Cell cell) {
         if (null == cell) {
-            return;
+            return false;
         }
         if (!subCells.contains(cell)) {
-            return;
+            return false;
         }
         subCells.remove(cell);
         cell.setParent(null);
+        return true;
+    }
+
+    void requestMeasureAndLayout() {
+        _requestMeasureAndLayout(this);
+    }
+
+    private void _requestMeasureAndLayout(CellGroup p) {
+        p.forceMeasure();
+        p.forceLayout();
+        final CellGroup pp = p.getParent();
+        if (null != pp) {
+            _requestMeasureAndLayout(pp);
+        }
     }
 
     public Cell getCellAt(int order) {
@@ -83,17 +104,34 @@ public class CellGroup extends Cell {
 
     private int scrollX, scrollY;
 
+    @Override
     public void scrollTo(int x, int y) {
         scrollX = x;
         scrollY = y;
     }
 
+    @Override
     public int getScrollX() {
         return scrollX;
     }
 
+    @Override
     public int getScrollY() {
         return scrollY;
+    }
+
+    @Override
+    public void measureContent() {
+    }
+
+    @Override
+    public int getContentWidth() {
+        return width();
+    }
+
+    @Override
+    public int getContentHeight() {
+        return height();
     }
 
     @Override

@@ -179,15 +179,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     public void notifyCellChanged() {
-        // TODO: 2018/11/30
-        CellGroup group = (CellGroup) director.getRoot();
-        int scrollX = group.getScrollX();
-        int scrollY = group.getScrollY();
-        Cell focus = focusManager.getFocus();
-        director.reLayout();
-        // restore
-//        director.scrollBy(group, scrollX, scrollY);
-        focusManager.setFocus(focus);
+        director.measure(getMeasuredWidth(), getMeasuredHeight());
+        director.layout(getLeft(), getTop());
     }
 
     public void setOnSelectChangedListener(OnSelectChangedListener listener) {
@@ -340,9 +333,15 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        director.measure(getMeasuredWidth(), getMeasuredHeight());
+    }
+
+    @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if (changed) {
-            director.layout(l, t, getMeasuredWidth(), getMeasuredHeight());
+            director.layout(l, t);
         }
     }
 
@@ -580,11 +579,13 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
-    public void onCellLayout() {
+    public void onRefreshAll() {
         viewManager.replaceAllHolder();
         viewManager.layoutAllContent();
         // init focus
-        focusManager.setFocus(findFirstCell((CellGroup) director.getRoot()));
+        if (null == focusManager.getFocus()) {
+            focusManager.setFocus(findFirstCell((CellGroup) director.getRoot()));
+        }
     }
 
     @Override

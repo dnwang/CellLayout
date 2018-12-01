@@ -20,7 +20,6 @@ final class CellDirector {
     private Cell root;
     private LifeCycleCallback callback;
 
-    private static final int FLAG_NO_LAYOUT = 1;
     private int state = 0;
 
     void setCallback(LifeCycleCallback callback) {
@@ -40,35 +39,36 @@ final class CellDirector {
     }
 
     void forceLayout() {
-        state |= FLAG_NO_LAYOUT;
+        if (!hasRoot()) return;
+        root.forceLayout();
     }
 
-    void layout(int left, int top, int width, int height) {
-        if (hasRoot() && (state & FLAG_NO_LAYOUT) != 0) {
-            Log.d(CellLayout.TAG, "[director.layout] l: " + left + ", t: " + top + ", w: " + width + ", h: " + height);
-            state &= ~FLAG_NO_LAYOUT; // clear flag
-            root.measure(width, height);
-            root.layout(left, top);
-            //
-            foreachAllCells(true, new Filter<Cell>() {
-                @Override
-                public boolean call(Cell cell) {
-                    // set visible state
-                    setVisibleState(cell);
-                    // force notify outSide
-                    onCellVisibleChanged(cell);
-                    return false;
-                }
-            });
-            onCellLayout();
-        }
+    void measure(int width, int height) {
+        if (!hasRoot() || root.isMeasured()) return;
+        Log.d(CellLayout.TAG, "[director.measure] w: " + width + ", h: " + height);
+        root.measure(width, height);
     }
 
-    void reLayout() {
-        forceLayout();
-        if (hasRoot()) {
-            layout(root.getLeft(), root.getTop(), root.width(), root.height());
-        }
+    void layout(int x, int y) {
+        if (!hasRoot() || root.isLayout()) return;
+        Log.d(CellLayout.TAG, "[director.layout] x: " + x + ", y: " + y);
+        root.layout(x, y, 0, 0);
+        invalidate();
+    }
+
+    private void invalidate() {
+        Log.d(CellLayout.TAG, "[director.invalidate]");
+        foreachAllCells(true, new Filter<Cell>() {
+            @Override
+            public boolean call(Cell cell) {
+                // set visible state
+                setVisibleState(cell);
+                // force notify outSide
+                onCellVisibleChanged(cell);
+                return false;
+            }
+        });
+        onRefreshAll();
     }
 
     private Cell tmp = null;
@@ -213,9 +213,9 @@ final class CellDirector {
         }
     }
 
-    private void onCellLayout() {
+    private void onRefreshAll() {
         if (null != callback) {
-            callback.onCellLayout();
+            callback.onRefreshAll();
         }
     }
 
@@ -226,7 +226,7 @@ final class CellDirector {
     }
 
     interface LifeCycleCallback {
-        void onCellLayout();
+        void onRefreshAll();
 
         void onVisibleChanged(Cell cell);
 

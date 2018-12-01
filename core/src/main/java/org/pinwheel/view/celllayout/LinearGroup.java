@@ -9,7 +9,7 @@ package org.pinwheel.view.celllayout;
  * @author dnwang
  * @version 2018/11/15,11:32
  */
-public class LinearGroup extends CellGroup implements IScrollContent {
+public class LinearGroup extends CellGroup {
 
     public static final int HORIZONTAL = 0;
     public static final int VERTICAL = 1;
@@ -56,9 +56,10 @@ public class LinearGroup extends CellGroup implements IScrollContent {
             while (size > 0) {
                 Cell tmp = group.getCellAt(0);
                 tmp.removeFromParent();
-                addCell(tmp, tmp.getParams());
+                addCellInner(tmp, tmp.getParams());
                 size--;
             }
+            requestMeasureAndLayout();
         } else {
             super.merge(cell);
         }
@@ -70,6 +71,7 @@ public class LinearGroup extends CellGroup implements IScrollContent {
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
+            if (cell.isMeasured()) continue;
             Params p = (LinearGroup.Params) cell.getParams();
             if (HORIZONTAL == orientation) {
                 int h = height - paddingTop - paddingBottom - p.marginTop - p.marginBottom;
@@ -83,13 +85,16 @@ public class LinearGroup extends CellGroup implements IScrollContent {
     }
 
     @Override
-    protected void layout(int x, int y) {
-        super.layout(x, y);
+    protected void layout(int x, int y, int scrollX, int scrollY) {
+        super.layout(x, y, scrollX, scrollY);
+        // layout child with scroll offset
+        scrollX += getScrollX();
+        scrollY += getScrollY();
         int tmp;
         if (HORIZONTAL == orientation) {
-            tmp = getLeft() + paddingLeft;
+            tmp = x + paddingLeft;
         } else {
-            tmp = getTop() + paddingTop;
+            tmp = y + paddingTop;
         }
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
@@ -98,12 +103,12 @@ public class LinearGroup extends CellGroup implements IScrollContent {
             if (HORIZONTAL == orientation) {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginLeft;
-                cell.layout(tmp, getTop() + paddingTop + p.marginTop);
+                cell.layout(tmp, y + paddingTop + p.marginTop, scrollX, scrollY);
                 tmp += (cell.width() + p.marginRight);
             } else {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginTop;
-                cell.layout(getLeft() + paddingLeft + p.marginLeft, tmp);
+                cell.layout(x + paddingLeft + p.marginLeft, tmp, scrollX, scrollY);
                 tmp += (cell.height() + p.marginBottom);
             }
         }

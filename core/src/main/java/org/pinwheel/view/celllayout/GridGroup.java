@@ -40,6 +40,7 @@ public class GridGroup extends CellGroup {
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
+            if (cell.isMeasured()) continue;
             Params p = (GridGroup.Params) cell.getParams();
             int w = bW * p.columnCount + (p.columnCount - 1) * divider - (p.marginLeft + p.marginRight);
             int h = bH * p.rowCount + (p.rowCount - 1) * divider - (p.marginTop + p.marginBottom);
@@ -48,19 +49,23 @@ public class GridGroup extends CellGroup {
     }
 
     @Override
-    protected void layout(int x, int y) {
-        super.layout(x, y);
+    protected void layout(int x, int y, int scrollX, int scrollY) {
+        super.layout(x, y, scrollX, scrollY);
+        // layout child with scroll offset
+        scrollX += getScrollX();
+        scrollY += getScrollY();
         final int bW = (int) ((width() - paddingLeft - paddingRight - (column - 1) * divider) * 1f / column);
         final int bH = (int) ((height() - paddingTop - paddingBottom - (row - 1) * divider) * 1f / row);
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
+            if (cell.isLayout()) continue;
             Params p = (GridGroup.Params) cell.getParams();
-            int l = getLeft() + paddingLeft + p.marginLeft;
+            int l = x + paddingLeft + p.marginLeft;
             l += p.x * (divider + bW);
-            int t = getTop() + paddingTop + p.marginTop;
+            int t = y + paddingTop + p.marginTop;
             t += p.y * (divider + bH);
-            cell.layout(l, t);
+            cell.layout(l, t, scrollX, scrollY);
         }
     }
 

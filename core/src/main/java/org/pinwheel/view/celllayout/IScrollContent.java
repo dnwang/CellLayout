@@ -10,6 +10,12 @@ package org.pinwheel.view.celllayout;
  * @version 2018/11/30,14:15
  */
 interface IScrollContent {
+    void scrollTo(int x, int y);
+
+    int getScrollX();
+
+    int getScrollY();
+
     void measureContent();
 
     int getContentWidth();
