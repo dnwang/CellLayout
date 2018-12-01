@@ -103,12 +103,16 @@ public class LinearGroup extends CellGroup {
             if (HORIZONTAL == orientation) {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginLeft;
-                cell.layout(tmp, y + paddingTop + p.marginTop, scrollX, scrollY);
+                if (!cell.isLayout()) {
+                    cell.layout(tmp, y + paddingTop + p.marginTop, scrollX, scrollY);
+                }
                 tmp += (cell.width() + p.marginRight);
             } else {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginTop;
-                cell.layout(x + paddingLeft + p.marginLeft, tmp, scrollX, scrollY);
+                if (!cell.isLayout()) {
+                    cell.layout(x + paddingLeft + p.marginLeft, tmp, scrollX, scrollY);
+                }
                 tmp += (cell.height() + p.marginBottom);
             }
         }

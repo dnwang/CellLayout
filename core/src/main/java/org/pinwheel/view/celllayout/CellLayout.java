@@ -164,7 +164,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             ((CellGroup) director.getRoot()).setOnScrollListener(null);
         }
         director.setRoot(root);
-        director.forceLayout();
     }
 
     public Cell getContentCell() {
@@ -179,8 +178,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     public void notifyCellChanged() {
-        director.measure(getMeasuredWidth(), getMeasuredHeight());
-        director.layout(getLeft(), getTop());
+        director.refreshLayout();
     }
 
     public void setOnSelectChangedListener(OnSelectChangedListener listener) {
@@ -579,7 +577,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
-    public void onRefreshAll() {
+    public void onRefreshActiveCells() {
         viewManager.replaceAllHolder();
         viewManager.layoutAllContent();
         // init focus
@@ -707,8 +705,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 final View v = activeCells.remove(cell);
                 if (cell.hasContent()) {
                     cell.setHasContent(false);
-                    pool.recycle(v);
-                    adapter.onViewRecycled(cell, v);
+                    if (null != v) {
+                        pool.recycle(v);
+                        adapter.onViewRecycled(cell, v);
+                    }
                 }
             }
         }
@@ -764,7 +764,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             final Collection<Map.Entry<Cell, View>> entrySet = activeCells.entrySet();
             for (Map.Entry<Cell, View> entry : entrySet) {
                 final Cell cell = entry.getKey();
-                entry.getValue().layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
+                final View v = entry.getValue();
+                if (v.getLeft() != cell.getLeft() || v.getTop() != cell.getTop()
+                        || v.getRight() != cell.getRight() || v.getBottom() != cell.getBottom()) {
+                    v.layout(cell.getLeft(), cell.getTop(), cell.getRight(), cell.getBottom());
+                }
             }
         }
 

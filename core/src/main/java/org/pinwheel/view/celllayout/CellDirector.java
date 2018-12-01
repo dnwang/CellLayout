@@ -20,8 +20,6 @@ final class CellDirector {
     private Cell root;
     private LifeCycleCallback callback;
 
-    private int state = 0;
-
     void setCallback(LifeCycleCallback callback) {
         this.callback = callback;
     }
@@ -38,11 +36,6 @@ final class CellDirector {
         return root;
     }
 
-    void forceLayout() {
-        if (!hasRoot()) return;
-        root.forceLayout();
-    }
-
     void measure(int width, int height) {
         if (!hasRoot() || root.isMeasured()) return;
         Log.d(CellLayout.TAG, "[director.measure] w: " + width + ", h: " + height);
@@ -53,22 +46,41 @@ final class CellDirector {
         if (!hasRoot() || root.isLayout()) return;
         Log.d(CellLayout.TAG, "[director.layout] x: " + x + ", y: " + y);
         root.layout(x, y, 0, 0);
-        invalidate();
+        postInvalidate();
     }
 
-    private void invalidate() {
-        Log.d(CellLayout.TAG, "[director.invalidate]");
-        foreachAllCells(true, new Filter<Cell>() {
+    private void postInvalidate() {
+        Sync.execute(new Sync.Function<Collection<Cell>>() {
             @Override
-            public boolean call(Cell cell) {
-                // set visible state
-                setVisibleState(cell);
-                // force notify outSide
-                onCellVisibleChanged(cell);
-                return false;
+            public Collection<Cell> call() {
+                final Set<Cell> stateChangedCells = new HashSet<>();
+                foreachAllCells(true, new Filter<Cell>() {
+                    @Override
+                    public boolean call(Cell cell) {
+                        // set state
+                        if (setVisibleState(cell)) {
+                            stateChangedCells.add(cell);
+                        }
+                        return false;
+                    }
+                });
+                return stateChangedCells;
+            }
+        }, new Sync.Action<Collection<Cell>>() {
+            @Override
+            public void call(Collection<Cell> stateChangedCells) {
+                for (Cell cell : stateChangedCells) {
+                    onCellVisibleChanged(cell);
+                }
+                onRefreshActiveCells();
             }
         });
-        onRefreshAll();
+    }
+
+    void refreshLayout() {
+        if (!hasRoot()) return;
+        measure(root.width(), root.height());
+        layout(root.getLeft(), root.getTop());
     }
 
     private Cell tmp = null;
@@ -123,7 +135,7 @@ final class CellDirector {
                 group.foreachAllCells(true, new Filter<Cell>() {
                     @Override
                     public boolean call(Cell cell) {
-                        if (cell == group) return false;
+                        if (cell == group) return false; // don't move self
                         cell.offset(dx, dy);
                         if (setVisibleState(cell)) {
                             stateChangedCells.add(cell);
@@ -213,9 +225,9 @@ final class CellDirector {
         }
     }
 
-    private void onRefreshAll() {
+    private void onRefreshActiveCells() {
         if (null != callback) {
-            callback.onRefreshAll();
+            callback.onRefreshActiveCells();
         }
     }
 
@@ -226,7 +238,7 @@ final class CellDirector {
     }
 
     interface LifeCycleCallback {
-        void onRefreshAll();
+        void onRefreshActiveCells();
 
         void onVisibleChanged(Cell cell);
 
