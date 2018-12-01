@@ -72,7 +72,7 @@ public class LinearGroup extends CellGroup {
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
             if (cell.isMeasured()) continue;
-            Params p = (LinearGroup.Params) cell.getParams();
+            CellGroup.Params p = cell.getParams();
             if (HORIZONTAL == orientation) {
                 int h = height - paddingTop - paddingBottom - p.marginTop - p.marginBottom;
                 cell.measure(p.width, h);
@@ -99,7 +99,7 @@ public class LinearGroup extends CellGroup {
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
             Cell cell = getCellAt(i);
-            Params p = (LinearGroup.Params) cell.getParams();
+            CellGroup.Params p = cell.getParams();
             if (HORIZONTAL == orientation) {
                 tmp += 0 == i ? 0 : divider;
                 tmp += p.marginLeft;
@@ -124,8 +124,8 @@ public class LinearGroup extends CellGroup {
 
     @Override
     public void scrollTo(int x, int y) {
-        super.scrollTo(Math.max(width() - contentWidth, Math.min(x, 0)),
-                Math.max(height() - contentHeight, Math.min(y, 0)));
+        super.scrollTo(contentWidth < width() ? 0 : Math.max(width() - contentWidth, Math.min(x, 0)),
+                contentHeight < height() ? 0 : Math.max(height() - contentHeight, Math.min(y, 0)));
     }
 
     @Override

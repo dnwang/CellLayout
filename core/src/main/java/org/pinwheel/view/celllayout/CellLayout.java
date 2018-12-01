@@ -582,7 +582,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         viewManager.layoutAllContent();
         // init focus
         if (null == focusManager.getFocus()) {
-            focusManager.setFocus(findFirstCell((CellGroup) director.getRoot()));
+            focusManager.setFocus(findFirstFocusableCell((CellGroup) director.getRoot()));
         }
     }
 
@@ -968,15 +968,15 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    private static Cell findFirstCell(CellGroup group) {
+    private static Cell findFirstFocusableCell(CellGroup group) {
         int size = group.getCellCount();
         for (int i = 0; i < size; i++) {
             Cell subCell = group.getCellAt(i);
             if (subCell instanceof CellGroup) {
                 CellGroup subCellGroup = (CellGroup) subCell;
                 if (subCellGroup.getCellCount() > 0) {
-                    Cell target = findFirstCell(subCellGroup);
-                    if (null != target) {
+                    Cell target = findFirstFocusableCell(subCellGroup);
+                    if (null != target && target.isFocusable()) {
                         return target;
                     }
                 }
