@@ -13,13 +13,13 @@ import java.io.Serializable;
  */
 public class Cell extends Rect implements Serializable {
 
-    private static final int FLAG_VISIBLE = 1;
-    // 0: empty, 1: content view
+    private static final int FLAG_HAS_MEASURED = 1;
+    private static final int FLAG_HAS_LAYOUT = FLAG_HAS_MEASURED << 1;
+    private static final int FLAG_VISIBLE = FLAG_HAS_LAYOUT << 1;
     private static final int FLAG_HAS_CONTENT = FLAG_VISIBLE << 1;
     private static final int FLAG_DISABLE_FOCUS = FLAG_HAS_CONTENT << 1;
-    private static final int FLAG_NO_HOLDER = FLAG_DISABLE_FOCUS << 1;
-    private static final int FLAG_HAS_MEASURED = FLAG_NO_HOLDER << 1;
-    private static final int FLAG_HAS_LAYOUT = FLAG_HAS_MEASURED << 1;
+    private static final int FLAG_HAS_FOCUS = FLAG_DISABLE_FOCUS << 1;
+    private static final int FLAG_NO_HOLDER = FLAG_HAS_FOCUS << 1;
 
     private static int ID_OFFSET = 0;
     private final int id;
@@ -180,6 +180,18 @@ public class Cell extends Rect implements Serializable {
 
     public final boolean isFocusable() {
         return (state & FLAG_DISABLE_FOCUS) == 0;
+    }
+
+    final void setFocus(boolean is) {
+        if (is) {
+            state |= FLAG_HAS_FOCUS;
+        } else {
+            state &= ~FLAG_HAS_FOCUS;
+        }
+    }
+
+    public final boolean hasFocus() {
+        return (state & FLAG_HAS_FOCUS) != 0;
     }
 
     public final void setNoHolder(boolean is) {

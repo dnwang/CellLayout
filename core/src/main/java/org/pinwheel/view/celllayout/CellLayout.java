@@ -565,7 +565,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             final boolean result = super.drawChild(canvas, child, drawingTime);
             canvas.restore();
             // cellLayout has focus
-            if (null != borderDrawable && hasFocus() && cell == focusManager.getFocus()) {
+            if (null != borderDrawable && hasFocus() && cell.hasFocus()) {
                 canvas.save();
                 borderDrawable.onDraw(canvas, cell, l, t, child.getScaleX(), child.getScaleY());
                 canvas.restore();
@@ -758,6 +758,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             cell.setHasContent(true);
             cell.setFocusable(v.isFocusable());
             activeCells.put(cell, v);
+            // restore state
+            if (cell.hasFocus()) {
+                v.setScaleX(SCALE_MAX);
+                v.setScaleY(SCALE_MAX);
+            }
         }
 
         private void layoutAllContent() {
@@ -805,8 +810,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     onSelectChangedListener.onSelectChanged(focusCell, from, cell, to);
                 }
             }
+            if (null != focusCell) {
+                focusCell.setFocus(false);
+            }
             focusCell = cell;
             if (null != focusCell) {
+                focusCell.setFocus(true);
                 checkAndMoveFocusVisible();
             }
         }
@@ -843,15 +852,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void moveFocusBy(final Cell from, final int distance, final int dir) {
             if (null == from) return;
             final CellGroup root = (CellGroup) director.getRoot();
-            final int maxWidth, maxHeight;
-            if (root instanceof IScrollContent) {
-                final IScrollContent contentGroup = (IScrollContent) root;
-                maxWidth = contentGroup.getContentWidth();
-                maxHeight = contentGroup.getContentHeight();
-            } else {
-                maxWidth = root.width();
-                maxHeight = root.height();
-            }
+            final int maxWidth = root.getContentWidth();
+            final int maxHeight = root.getContentHeight();
             final Rect limitArea;
             switch (dir) {
                 case View.FOCUS_LEFT:
