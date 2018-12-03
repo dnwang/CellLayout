@@ -15,110 +15,110 @@
       },
       {
         "type": "linear",
-        "divider": 20,
-        "width":400,
+        "divider": 40,
+        "width": 400,
         "orientation": 1,
         "cells": [
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "金刚",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543998044&di=6693de238966ef55fe1f5ccdcf9dd47a&imgtype=jpg&er=1&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01eeb358ddff9ca801219c77f87553.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "不知道什么名字",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323733&di=a350272be2ed87f904435181d693ea2b&imgtype=0&src=http%3A%2F%2Fpic27.nipic.com%2F20130314%2F8651001_150650620188_2.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "大兵小将",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323733&di=5336c6b8f256ea54d63b962cfcc38b55&imgtype=0&src=http%3A%2F%2Fimg3.redocn.com%2Ftupian%2F20160202%2Fdianyinghaibaosheji_5851219.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "影",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323733&di=941a21882e0aaa96343ded86fb9171e5&imgtype=0&src=http%3A%2F%2Fimage11.m1905.cn%2Fuploadfile%2F2018%2F0904%2F20180904092255540658.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "我不是要生",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323733&di=6829c291b9b8d4d2b35e70223bce2b52&imgtype=0&src=http%3A%2F%2Fhbimg.b0.upaiyun.com%2F78261da2d70a4f19e6005195a7a2cc2586d7c1ea5fc2fa-gyhdls_fw658"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "金刚",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543998044&di=6693de238966ef55fe1f5ccdcf9dd47a&imgtype=jpg&er=1&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01eeb358ddff9ca801219c77f87553.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "泰坦尼克",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323732&di=080f640577e0db59fa553d095b3cc54e&imgtype=0&src=http%3A%2F%2Fmf19.yifutu.com%2Fmoban%2F1508%2F25%2F11%2F744292_3470c9f9-9060-40e2-8b9a-8723d7bb76c1.Png"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "大风水师",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323731&di=586001615270a99e69d6e0fc02f47cf0&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F010fdc59fabc4aa801202b0c30bba2.JPG%402o.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "一代宗师",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323731&di=3353240fab945cf85ae51da49d29591f&imgtype=0&src=http%3A%2F%2F5b0988e595225.cdn.sohucs.com%2Fimages%2F20180712%2Fd427ebbf3b8948b081a88b409b46962b.jpeg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "黑衣人",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323730&di=fbd4c9d64509210cfe7fac909bfa8a1c&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01edc3579089690000018c1b783b99.jpg%401280w_1l_2o_100sh.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "一出好戏",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323729&di=b6d16e6e2d3ad3ea7937d025a7558b2c&imgtype=0&src=http%3A%2F%2F5b0988e595225.cdn.sohucs.com%2Fq_70%2Cc_zoom%2Cw_640%2Fimages%2F20180811%2F0e00b6cc69334e24a660f68e1fea2514.jpeg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "金刚",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543998044&di=6693de238966ef55fe1f5ccdcf9dd47a&imgtype=jpg&er=1&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F01eeb358ddff9ca801219c77f87553.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "未知",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323729&di=dee04756ef785c29956c23c69e8a036e&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F0122b056a6dd5632f875520fa7b626.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "盗墓笔记",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323729&di=2cd843a19255ee1181e7317c3a54ac93&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F010c7f586c67daa8012060c85f5a7a.jpg%402o.jpg"
             }
           },
           {
-            "height": 400,
+            "height": 600,
             "data": {
               "title": "魔兽",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543403323910&di=b00995ce75cb91c17c83b13a200beac7&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F0169cc57568ca500000118c542203d.jpg%401280w_1l_2o_100sh.jpg"

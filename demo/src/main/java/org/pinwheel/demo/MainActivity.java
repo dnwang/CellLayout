@@ -51,13 +51,20 @@ public final class MainActivity extends Activity {
     }
 
     private void loadGroup() {
-        final LinearGroup root = new LinearGroup(LinearGroup.HORIZONTAL);
+        final LinearGroup root = new LinearGroup(LinearGroup.VERTICAL);
         root.setDivider(20);
         root.setPadding(80, 80, 80, 80);
         final String[] groupNames = new String[]{
-                "template_h_1.json",
-                "template_h_2.json",
-//                "template_2.json",
+//                "template_h_0.json",
+//                "template_h_1.json",
+//                "template_h_2.json",
+//                "template_h_2.json",
+//                "template_h_2.json",
+                "template_0.json",
+                "template_1.json",
+                "template_2.json",
+                "template_2.json",
+                "template_2.json",
         };
         for (String groupName : groupNames) {
             try {
@@ -150,7 +157,7 @@ public final class MainActivity extends Activity {
             public void onScrollToEnd(CellGroup group) {
                 Log.e(TAG, "[onScrollToEnd] group:" + group);
                 try {
-                    CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("template_h_1.json")));
+                    CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open("template_1.json")));
                     // cell
                     cellLayout.addCell(bundle.root);
                     // data

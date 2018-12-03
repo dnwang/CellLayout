@@ -509,8 +509,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     @Override
     public void draw(Canvas canvas) {
         focusOrder = -1;
-        super.draw(canvas);
         onDrawHolders(canvas);
+        super.draw(canvas);
     }
 
     private void onDrawHolders(final Canvas canvas) {
@@ -560,16 +560,16 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             cell.computeParentScroll();
             final int l = cell.getLayoutXWithParentScroll();
             final int t = cell.getLayoutYWithParentScroll();
-            canvas.save();
-            canvas.translate(l - child.getLeft(), t - child.getTop());
-            final boolean result = super.drawChild(canvas, child, drawingTime);
-            canvas.restore();
             // cellLayout has focus
             if (null != borderDrawable && hasFocus() && cell.hasFocus()) {
                 canvas.save();
                 borderDrawable.onDraw(canvas, cell, l, t, child.getScaleX(), child.getScaleY());
                 canvas.restore();
             }
+            canvas.save();
+            canvas.translate(l - child.getLeft(), t - child.getTop());
+            final boolean result = super.drawChild(canvas, child, drawingTime);
+            canvas.restore();
             return result;
         } else {
             return false;
@@ -942,7 +942,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             paint = new Paint();
             paint.setColor(Color.WHITE);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(4);
+            paint.setStrokeWidth(FOCUS_STOKE_WIDTH);
         }
 
         @Override
