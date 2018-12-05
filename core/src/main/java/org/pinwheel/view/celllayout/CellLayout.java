@@ -509,8 +509,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     @Override
     public void draw(Canvas canvas) {
         focusOrder = -1;
-        onDrawHolders(canvas);
         super.draw(canvas);
+        onDrawHolders(canvas);
     }
 
     private void onDrawHolders(final Canvas canvas) {
