@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "root": {
+    "type": "linear",
+    "divider": 10,
+    "padding": 80,
+    "orientation": 0,
+    "cells": [
+      {
+        "type": "grid",
+        "width": 1200,
+        "row": 4,
+        "column": 5,
+        "cells": [
+          {
+            "x": 0,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "eee"
+            }
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1
+          },
+          {
+            "x": 0,
+            "y": 2,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "xxx"
+            }
+          },
+          {
+            "x": 0,
+            "y": 3,
+            "columnCount": 1,
+            "rowCount": 1
+          },
+          {
+            "style": 1,
+            "x": 1,
+            "y": 0,
+            "marginLeft": 10,
+            "columnCount": 4,
+            "rowCount": 4,
+            "data": {
+              "title": "iii"
+            }
+          }
+        ]
+      },
+      {
+        "type": "linear",
+        "width": 400,
+        "divider": 10,
+        "orientation": 1,
+        "cells": [
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600,
+            "data": {
+              "title": "ooo"
+            }
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600,
+            "data": {
+              "title": "uuu"
+            }
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          },
+          {
+            "height": 600
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "row": 2,
+        "column": 5,
+        "divider": 10,
+        "width": 1000,
+        "cells": [
+          {
+            "style": 1,
+            "x": 0,
+            "y": 0,
+            "columnCount": 3,
+            "rowCount": 2,
+            "data": {
+              "title": "qqq"
+            }
+          },
+          {
+            "x": 3,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1
+          },
+          {
+            "x": 4,
+            "y": 0,
+            "columnCount": 1,
+            "rowCount": 1
+          },
+          {
+            "x": 3,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1,
+            "data": {
+              "title": "yyy"
+            }
+          },
+          {
+            "x": 4,
+            "y": 1,
+            "columnCount": 1,
+            "rowCount": 1
+          }
+        ]
+      },
+      {
+        "type": "linear",
+        "width": 600,
+        "divider": 10,
+        "orientation": 1,
+        "cells": [
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400,
+            "data": {
+              "title": "ooo"
+            }
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400,
+            "data": {
+              "title": "uuu"
+            }
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          },
+          {
+            "height": 400
+          }
+        ]
+      }
+    ]
+  }
+}

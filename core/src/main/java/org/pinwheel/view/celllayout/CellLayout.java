@@ -160,6 +160,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     public void setContentCell(Cell root) {
         viewManager.checkAndReleaseCache(true);
+        focusManager.clear();
         if (director.getRoot() instanceof CellGroup) { // clear
             ((CellGroup) director.getRoot()).setOnScrollListener(null);
         }
@@ -175,10 +176,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         if (director.getRoot() instanceof CellGroup) {
             ((CellGroup) director.getRoot()).merge(cell);
         }
-    }
-
-    public void notifyCellChanged() {
-        director.refreshLayout();
     }
 
     public void setOnSelectChangedListener(OnSelectChangedListener listener) {
@@ -338,9 +335,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        if (changed) {
-            director.layout(l, t);
-        }
+        director.layout(0, 0);
     }
 
     private final Point touchPoint = new Point();
@@ -496,8 +491,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
         @Override
         public boolean onSinglePress(int keyCode) {
-            focusManager.moveFocusBy(focusManager.getFocus(), 0, convertKeyCodeToFocusDir(keyCode));
-            return false;
+            return focusManager.moveFocusBy(focusManager.getFocus(), 0, convertKeyCodeToFocusDir(keyCode));
         }
     };
 
@@ -792,6 +786,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     private final class FocusManager {
         private Cell focusCell = null;
 
+        void clear() {
+            focusCell = null;
+        }
+
         Cell getFocus() {
             return focusCell;
         }
@@ -849,8 +847,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             }
         }
 
-        void moveFocusBy(final Cell from, final int distance, final int dir) {
-            if (null == from) return;
+        boolean moveFocusBy(final Cell from, final int distance, final int dir) {
+            if (null == from) return false;
             final CellGroup root = (CellGroup) director.getRoot();
             final int maxWidth = root.getContentWidth();
             final int maxHeight = root.getContentHeight();
@@ -875,46 +873,76 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 default:
                     limitArea = null;
             }
-            if (null == limitArea) return;
-            Sync.execute(new Sync.Function<Cell>() {
-                Cell tmp = null;
-
+            if (null == limitArea) return false;
+//            Sync.execute(new Sync.Function<Cell>() {
+//                Cell tmp = null;
+//
+//                @Override
+//                public Cell call() {
+//                    root.foreachAllCells(false, new Filter<Cell>() {
+//                        @Override
+//                        public boolean call(Cell cell) {
+//                            if (cell.isFocusable() && Rect.intersects(limitArea, cell)) {
+//                                if (null != tmp) {
+//                                    int d1, d2;
+//                                    if (View.FOCUS_LEFT == dir || View.FOCUS_RIGHT == dir) {
+//                                        d1 = Math.abs(tmp.getLeft() - from.getLeft());
+//                                        d2 = Math.abs(cell.getLeft() - from.getLeft());
+//                                    } else {
+//                                        d1 = Math.abs(tmp.getTop() - from.getTop());
+//                                        d2 = Math.abs(cell.getTop() - from.getTop());
+//                                    }
+//                                    if (distance < d2 && (d1 < distance || d2 < d1)) {
+//                                        tmp = cell;
+//                                    }
+//                                } else {
+//                                    tmp = cell;
+//                                }
+//                            }
+//                            return false;
+//                        }
+//                    });
+//                    return tmp;
+//                }
+//            }, new Sync.Action<Cell>() {
+//                @Override
+//                public void call(Cell newFocus) {
+//                    if (null != newFocus) {
+//                        setFocus(newFocus);
+//                    }
+//                }
+//            });
+            tmp = null;
+            root.foreachAllCells(false, new Filter<Cell>() {
                 @Override
-                public Cell call() {
-                    root.foreachAllCells(false, new Filter<Cell>() {
-                        @Override
-                        public boolean call(Cell cell) {
-                            if (cell.isFocusable() && Rect.intersects(limitArea, cell)) {
-                                if (null != tmp) {
-                                    int d1, d2;
-                                    if (View.FOCUS_LEFT == dir || View.FOCUS_RIGHT == dir) {
-                                        d1 = Math.abs(tmp.getLeft() - from.getLeft());
-                                        d2 = Math.abs(cell.getLeft() - from.getLeft());
-                                    } else {
-                                        d1 = Math.abs(tmp.getTop() - from.getTop());
-                                        d2 = Math.abs(cell.getTop() - from.getTop());
-                                    }
-                                    if (distance < d2 && (d1 < distance || d2 < d1)) {
-                                        tmp = cell;
-                                    }
-                                } else {
-                                    tmp = cell;
-                                }
+                public boolean call(Cell cell) {
+                    if (cell.isFocusable() && Rect.intersects(limitArea, cell)) {
+                        if (null != tmp) {
+                            int d1, d2;
+                            if (View.FOCUS_LEFT == dir || View.FOCUS_RIGHT == dir) {
+                                d1 = Math.abs(tmp.getLeft() - from.getLeft());
+                                d2 = Math.abs(cell.getLeft() - from.getLeft());
+                            } else {
+                                d1 = Math.abs(tmp.getTop() - from.getTop());
+                                d2 = Math.abs(cell.getTop() - from.getTop());
                             }
-                            return false;
+                            if (distance < d2 && (d1 < distance || d2 < d1)) {
+                                tmp = cell;
+                            }
+                        } else {
+                            tmp = cell;
                         }
-                    });
-                    return tmp;
-                }
-            }, new Sync.Action<Cell>() {
-                @Override
-                public void call(Cell newFocus) {
-                    if (null != newFocus) {
-                        setFocus(newFocus);
                     }
+                    return false;
                 }
             });
+            if (null != tmp) {
+                setFocus(tmp);
+            }
+            return null != tmp;
         }
+
+        Cell tmp = null;
     }
 
     private static final class DefHolderDrawable implements HolderDrawable {

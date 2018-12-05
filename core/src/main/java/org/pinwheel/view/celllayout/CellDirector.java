@@ -77,12 +77,6 @@ final class CellDirector {
         });
     }
 
-    void refreshLayout() {
-        if (!hasRoot()) return;
-        measure(root.width(), root.height());
-        layout(root.getLeft(), root.getTop());
-    }
-
     private Cell tmp = null;
 
     Cell findCellByPosition(final int x, final int y) {
