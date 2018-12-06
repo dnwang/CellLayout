@@ -13,11 +13,14 @@ import java.util.List;
  * @author dnwang
  * @version 2018/11/15,14:01
  */
-public class CellGroup extends Cell implements IScrollContent {
+public class CellGroup extends Cell implements Scrollable {
 
     OnScrollListener onScrollListener;
 
     private final List<Cell> subCells = new ArrayList<>();
+
+    @Attribute
+    boolean mask = false;
 
     CellGroup() {
         super();

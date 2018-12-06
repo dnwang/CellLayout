@@ -353,6 +353,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         director.layout(getPaddingLeft(), getPaddingTop());
     }
 
+    private boolean isMoving() {
+        return (flag & (FLAG_MOVING_LONG_PRESS | FLAG_MOVING_AUTO | FLAG_MOVING_TOUCH)) != 0;
+    }
+
     private final Point touchPoint = new Point();
     private Cell touchCell = null;
 
@@ -521,10 +525,28 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
-    public void draw(Canvas canvas) {
+    public void draw(final Canvas canvas) {
         focusOrder = -1;
         onDrawHolders(canvas);
         super.draw(canvas);
+    }
+
+    @Deprecated
+    private void applyParentMask(Canvas canvas, Cell cell) {
+        final CellGroup parent = cell.getParent();
+        if (null != parent && parent.mask) {
+            final int l, t;
+            if (isMoving()) {
+                parent.computeParentScroll();
+                l = parent.getLayoutXWithParentScroll();
+                t = parent.getLayoutYWithParentScroll();
+            } else {
+                l = parent.getLeft();
+                t = parent.getTop();
+            }
+            canvas.clipRect(new android.graphics.Rect(l, t,
+                    l + parent.width(), t + parent.height()));
+        }
     }
 
     private void onDrawHolders(final Canvas canvas) {

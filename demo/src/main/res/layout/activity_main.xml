@@ -55,7 +55,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:text="left focus" />
+            android:text="left" />
 
         <org.pinwheel.view.celllayout.CellLayout
             android:id="@+id/cell_layout"
@@ -69,13 +69,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:text="right focus" />
+            android:text="right" />
     </LinearLayout>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:text="bottom focus" />
+        android:text="bottom" />
 
 </LinearLayout>
