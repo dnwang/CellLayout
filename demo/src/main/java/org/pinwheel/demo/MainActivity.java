@@ -10,7 +10,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONException;
-import org.pinwheel.agility2.utils.CommonTools;
 import org.pinwheel.agility2.utils.IOUtils;
 import org.pinwheel.view.celllayout.Cell;
 import org.pinwheel.view.celllayout.CellFactory;
@@ -44,6 +43,7 @@ public final class MainActivity extends Activity {
     private void init() {
         cellLayout = findViewById(R.id.cell_layout);
         cellLayout.setAdapter(adapter);
+        cellLayout.setHolderDrawable(new CellLayout.DefHolderDrawable(getResources().getDrawable(R.drawable.img_holder)));
         cellLayout.setOnCellClickListener(new CellLayout.OnCellClickListener() {
             @Override
             public void onClick(Cell cell) {
@@ -77,7 +77,7 @@ public final class MainActivity extends Activity {
             final CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open(template)));
             dataMaps = bundle.dataMap;
             cellLayout.setContentCell(bundle.root);
-            cellLayout.requestLayout();
+            cellLayout.requestLayout(); // apply
         } catch (JSONException | IOException e) {
             e.printStackTrace();
         }

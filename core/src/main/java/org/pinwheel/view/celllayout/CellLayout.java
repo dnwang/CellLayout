@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -40,23 +41,23 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     public CellLayout(Context context) {
         super(context);
-        this.init();
+        this.init(null);
     }
 
     public CellLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
-        this.init();
+        this.init(attrs);
     }
 
     public CellLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        this.init();
+        this.init(attrs);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public CellLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
-        this.init();
+        this.init(attrs);
     }
 
     @Deprecated
@@ -133,7 +134,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     private static final boolean SCALE_FOCUS = true;
 
-    private void init() {
+    private void init(final AttributeSet attrs) {
         director.setCallback(this);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -141,8 +142,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
 //        setWillNotDraw(false);
 
-        holderDrawable = new DefHolderDrawable();
-        borderDrawable = new DefBorderDrawable();
+        holderDrawable = new DefHolderDrawable(Color.parseColor("#4F586E"));
+        borderDrawable = new DefBorderDrawable(Color.WHITE, dip2px(1));
     }
 
     public void setHolderDrawable(HolderDrawable drawable) {
@@ -522,8 +523,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     @Override
     public void draw(Canvas canvas) {
         focusOrder = -1;
-        super.draw(canvas);
         onDrawHolders(canvas);
+        super.draw(canvas);
     }
 
     private void onDrawHolders(final Canvas canvas) {
@@ -952,7 +953,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     if (null != newFocus) {
                         setFocus(newFocus);
                     } else {
-                        moveSystemFocusBy(CellLayout.this, dir);
+                        moveSystemFocusBy(dir);
                     }
                 }
             });
@@ -960,43 +961,67 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    private static final class DefHolderDrawable implements HolderDrawable {
+    public static final class DefHolderDrawable implements HolderDrawable {
         private Paint paint;
+        private Drawable drawable;
 
-        DefHolderDrawable() {
+        public DefHolderDrawable(final int color) {
             paint = new Paint();
-            paint.setColor(Color.parseColor("#4F586E"));
+            paint.setColor(color);
+        }
+
+        public DefHolderDrawable(final Drawable drawable) {
+            if (null == drawable) {
+                throw new NullPointerException("DefHolderDrawable can't receive null drawable !");
+            }
+            this.drawable = drawable;
         }
 
         @Override
         public void onDraw(Canvas canvas, Cell cell, int l, int t) {
             if (!cell.isNoHolder()) {
-                canvas.drawRect(l, t, l + cell.width(), t + cell.height(), paint);
+                if (null == drawable) {
+                    canvas.drawRect(l, t, l + cell.width(), t + cell.height(), paint);
+                } else {
+                    drawable.setBounds(l, t, l + cell.width(), t + cell.height());
+                    drawable.draw(canvas);
+                }
             }
         }
     }
 
-    private static final class DefBorderDrawable implements BorderDrawable {
-        private static final int FOCUS_STOKE_WIDTH = 4;
-
+    public static final class DefBorderDrawable implements BorderDrawable {
         private Paint paint;
+        private final int stokeWidth;
+        private final int gap;
 
-        DefBorderDrawable() {
+        public DefBorderDrawable(final int color, final int stokeWidth) {
+            this(color, stokeWidth, 1);
+        }
+
+        public DefBorderDrawable(final int color, final int stokeWidth, final int gap) {
+            this.stokeWidth = stokeWidth;
+            this.gap = gap;
             paint = new Paint();
-            paint.setColor(Color.WHITE);
+            paint.setColor(color);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(FOCUS_STOKE_WIDTH);
+            paint.setStrokeWidth(stokeWidth);
         }
 
         @Override
         public void onDraw(Canvas canvas, Cell cell, int l, int t, float scaleX, float scaleY) {
             float dw = cell.width() * (scaleX - 1);
             float dh = cell.height() * (scaleY - 1);
-            canvas.translate(l - dw / 2 - FOCUS_STOKE_WIDTH / 2, t - dh / 2 - FOCUS_STOKE_WIDTH / 2);
+            canvas.translate(l - dw / 2 - stokeWidth / 2f - gap, t - dh / 2 - stokeWidth / 2f - gap);
             canvas.scale(scaleX, scaleY);
-            canvas.drawRect(0, 0, cell.width() + FOCUS_STOKE_WIDTH, cell.height() + FOCUS_STOKE_WIDTH, paint);
+            canvas.drawRect(0, 0,
+                    cell.width() + stokeWidth + gap * 2,
+                    cell.height() + stokeWidth + gap * 2,
+                    paint);
         }
     }
+
+    // -------- basic methods
 
     private static int convertKeyCodeToFocusDir(final int keyCode) {
         switch (keyCode) {
@@ -1032,12 +1057,16 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         return null;
     }
 
-    private static void moveSystemFocusBy(View focus, final int dir) {
-        if (null == focus) return;
-        final View v = FocusFinder.getInstance().findNextFocus((ViewGroup) focus.getRootView(), focus, dir);
+    private void moveSystemFocusBy(final int dir) {
+        final View v = FocusFinder.getInstance().findNextFocus((ViewGroup) getRootView(), this, dir);
         if (v != null) {
             v.requestFocus(dir);
         }
+    }
+
+    private int dip2px(float dpValue) {
+        float scale = getResources().getDisplayMetrics().density;
+        return (int) (dpValue * scale + 0.5F);
     }
 
 }
