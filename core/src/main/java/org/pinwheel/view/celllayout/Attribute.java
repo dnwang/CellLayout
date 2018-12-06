@@ -20,4 +20,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @interface Attribute {
     String value() default "";
+
+    boolean fixedResolution() default false;
 }

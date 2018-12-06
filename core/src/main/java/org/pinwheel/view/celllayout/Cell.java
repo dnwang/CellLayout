@@ -25,7 +25,7 @@ public class Cell extends Rect implements Serializable {
     private final int id;
     private int state = 0;
     //
-    @Attribute
+    @Attribute(fixedResolution = true)
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
     //
     private int measureWidth, measureHeight;

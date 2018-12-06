@@ -1,5 +1,7 @@
 package org.pinwheel.view.celllayout;
 
+import android.content.res.Resources;
+import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -19,10 +21,11 @@ import java.util.Iterator;
  * @author dnwang
  * @version 2018/11/15,18:51
  */
-public final class CellFactory {
+public final class TemplateFactory {
     private static final String TAG = "CellFactory";
 
     private static final String ATTR_VERSION = "version";
+    private static final String ATTR_RESOLUTION = "targetResolution";
     private static final String ATTR_ROOT = "root";
     private static final String ATTR_TYPE = "type";
     private static final String ATTR_DATA = "data";
@@ -30,28 +33,34 @@ public final class CellFactory {
     private static final String ATTR_GROUP_GRID = "grid";
     private static final String ATTR_GROUP_LINEAR = "linear";
 
-    public static Bundle load(String jsonString) throws JSONException {
+    public static Template load(String jsonString) throws JSONException {
         return load(new JSONObject(jsonString));
     }
 
-    public static Bundle load(JSONObject json) throws JSONException {
-        final int version = json.getInt(ATTR_VERSION);
+    public static Template load(JSONObject json) throws JSONException {
+        final int version = json.optInt(ATTR_VERSION, 1);
+        final int resolution = json.optInt(ATTR_RESOLUTION, 1080);
         if (version <= 1) {
-            IParser parser = new DefaultParser();
+            IParser parser = new DefaultParser(resolution);
             parser.parse(json);
-            return new Bundle(parser.getRoot(), parser.getDataMap());
+            return new Template(version, resolution, parser.getRoot(), parser.getData());
         } else {
             throw new JSONException("can't found this special version parser ! version:" + version);
         }
     }
 
     private static final class DefaultParser implements IParser {
-        private SparseArray<android.os.Bundle> dataMap;
+        private SparseArray<Bundle> dataMap;
         private Cell root;
+        private final int resolution;
+
+        DefaultParser(int resolution) {
+            this.resolution = resolution;
+        }
 
         @Override
         public void parse(JSONObject json) throws JSONException {
-            root = parse(json.getJSONObject(ATTR_ROOT), null);
+            root = _parse(json.getJSONObject(ATTR_ROOT), null);
         }
 
         @Override
@@ -60,11 +69,11 @@ public final class CellFactory {
         }
 
         @Override
-        public SparseArray<android.os.Bundle> getDataMap() {
+        public SparseArray<Bundle> getData() {
             return dataMap;
         }
 
-        private Cell parse(JSONObject args, CellGroup parent) throws JSONException {
+        private Cell _parse(JSONObject args, CellGroup parent) throws JSONException {
             // type
             final String type = args.optString(ATTR_TYPE);
             final Cell cell;
@@ -83,7 +92,7 @@ public final class CellFactory {
                 final JSONArray subArgsList = args.optJSONArray(ATTR_SUB_CELLS);
                 final int size = null != subArgsList ? subArgsList.length() : 0;
                 for (int i = 0; i < size; i++) {
-                    parse(subArgsList.getJSONObject(i), (CellGroup) cell);
+                    _parse(subArgsList.getJSONObject(i), (CellGroup) cell);
                 }
             }
             final CellGroup.Params p = null != parent ? parent.getDefaultParams() : new CellGroup.Params();
@@ -97,7 +106,7 @@ public final class CellFactory {
         }
 
         private void saveCellData(int cellId, JSONObject json) {
-            final android.os.Bundle data = (null != json && json.length() > 0) ? new android.os.Bundle() : null;
+            final Bundle data = (null != json && json.length() > 0) ? new Bundle() : null;
             if (null != data) {
                 Iterator<String> iterable = json.keys();
                 while (iterable.hasNext()) {
@@ -124,6 +133,8 @@ public final class CellFactory {
             if (null == json || 0 == json.length()) {
                 return;
             }
+            final float screenHeight = Resources.getSystem().getDisplayMetrics().heightPixels;
+            final float scale = screenHeight / resolution;
             final int padding = json.optInt("padding", 0);
             final int margin = json.optInt("margin", 0);
             foreachAllField(obj.getClass(), new Filter<Field>() {
@@ -131,20 +142,23 @@ public final class CellFactory {
                 public boolean call(Field field) {
                     field.setAccessible(true);
                     if (field.isAnnotationPresent(Attribute.class)) {
+                        final Attribute attrInfo = field.getAnnotation(Attribute.class);
+                        final String key = "".equals(attrInfo.value()) ? field.getName() : attrInfo.value();
                         final Class type = field.getType();
-                        String key = field.getAnnotation(Attribute.class).value();
-                        if ("".equals(key)) {
-                            key = field.getName();
-                        }
                         try {
                             if (type == int.class) {
+                                int value = 0;
                                 if (key.startsWith("padding")) {
-                                    field.set(obj, json.optInt(key, padding));
+                                    value = json.optInt(key, padding);
                                 } else if (key.startsWith("margin")) {
-                                    field.set(obj, json.optInt(key, margin));
+                                    value = json.optInt(key, margin);
                                 } else if (json.has(key)) {
-                                    field.set(obj, json.optInt(key, 0));
+                                    value = json.optInt(key, 0);
                                 }
+                                if (attrInfo.fixedResolution()) {
+                                    value = (int) (value * scale);
+                                }
+                                field.set(obj, value);
                             } else if (type == String.class && json.has(key)) {
                                 field.set(obj, json.optString(key, null));
                             } else if (type == boolean.class && json.has(key)) {
@@ -180,18 +194,22 @@ public final class CellFactory {
     private interface IParser {
         void parse(JSONObject json) throws JSONException;
 
-        SparseArray<android.os.Bundle> getDataMap();
+        SparseArray<Bundle> getData();
 
         Cell getRoot();
     }
 
-    public static final class Bundle {
+    public static final class Template {
+        public final int version;
+        public final int targetResolution;
         public final Cell root;
-        public final SparseArray<android.os.Bundle> dataMap;
+        public final SparseArray<Bundle> data;
 
-        Bundle(Cell root, SparseArray<android.os.Bundle> dataMap) {
+        Template(int version, int targetResolution, Cell root, SparseArray<Bundle> data) {
+            this.version = version;
+            this.targetResolution = targetResolution;
             this.root = root;
-            this.dataMap = dataMap;
+            this.data = data;
         }
     }
 

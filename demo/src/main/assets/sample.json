@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "targetResolution": 720,
   "root": {
     "type": "linear",
     "divider": 10,
@@ -8,7 +9,7 @@
     "cells": [
       {
         "type": "grid",
-        "height": 600,
+        "height": 300,
         "row": 4,
         "column": 5,
         "cells": [
@@ -60,82 +61,82 @@
       },
       {
         "type": "linear",
-        "height": 600,
+        "height": 300,
         "divider": 10,
         "orientation": 0,
         "cells": [
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400,
+            "width": 200,
             "data": {
               "title": "ooo",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400,
+            "width": 200,
             "data": {
               "title": "uuu"
             }
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400,
+            "width": 200,
             "data": {
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400,
+            "width": 200,
             "data": {
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           }
         ]
       },
@@ -144,7 +145,7 @@
         "row": 2,
         "column": 5,
         "divider": 10,
-        "height": 400,
+        "height": 200,
         "cells": [
           {
             "style": 1,
@@ -188,75 +189,75 @@
       },
       {
         "type": "linear",
-        "height": 400,
+        "height": 200,
         "divider": 10,
         "orientation": 0,
         "cells": [
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400,
+            "width": 200,
             "data": {
               "title": "ooo"
             }
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400,
+            "width": 200,
             "data": {
               "title": "uuu"
             }
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           },
           {
-            "width": 400
+            "width": 200
           }
         ]
       }

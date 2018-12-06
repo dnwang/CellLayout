@@ -203,9 +203,9 @@ public class CellGroup extends Cell implements IScrollContent {
     public static class Params implements Serializable {
         @Attribute("style")
         public int styleId = 0;
-        @Attribute
+        @Attribute(fixedResolution = true)
         public int width, height;
-        @Attribute
+        @Attribute(fixedResolution = true)
         public int marginLeft, marginTop, marginRight, marginBottom;
 
         Params() {

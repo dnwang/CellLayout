@@ -1,5 +1,7 @@
 package org.pinwheel.view.celllayout;
 
+import android.util.Log;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -14,7 +16,7 @@ public class LinearGroup extends CellGroup {
     public static final int HORIZONTAL = 0;
     public static final int VERTICAL = 1;
 
-    @Attribute
+    @Attribute(fixedResolution = true)
     private int divider;
     @Attribute
     private int orientation;
@@ -74,9 +76,15 @@ public class LinearGroup extends CellGroup {
             if (cell.isMeasured()) continue;
             CellGroup.Params p = cell.getParams();
             if (HORIZONTAL == orientation) {
+                if (p.width <= 0) {
+                    Log.w(CellLayout.TAG, "[LinearGroup.measure]: cell have no 'width' params in linearGroup with 'HORIZONTAL', the cell will not visible !");
+                }
                 int h = height - paddingTop - paddingBottom - p.marginTop - p.marginBottom;
                 cell.measure(p.width, h);
             } else {
+                if (p.height <= 0) {
+                    Log.w(CellLayout.TAG, "[LinearGroup.measure]: cell have no 'height' params in linearGroup with 'VERTICAL', the cell will not visible !");
+                }
                 int w = width - paddingLeft - paddingRight - p.marginLeft - p.marginRight;
                 cell.measure(w, p.height);
             }

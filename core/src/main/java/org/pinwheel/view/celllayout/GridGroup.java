@@ -11,7 +11,7 @@ package org.pinwheel.view.celllayout;
  */
 public class GridGroup extends CellGroup {
 
-    @Attribute
+    @Attribute(fixedResolution = true)
     private int divider;
     @Attribute
     private int row, column;

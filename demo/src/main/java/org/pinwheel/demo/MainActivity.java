@@ -12,9 +12,9 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
 import org.pinwheel.view.celllayout.Cell;
-import org.pinwheel.view.celllayout.CellFactory;
 import org.pinwheel.view.celllayout.CellLayout;
 import org.pinwheel.view.celllayout.StyleAdapter;
+import org.pinwheel.view.celllayout.TemplateFactory;
 
 import java.io.IOException;
 
@@ -72,11 +72,11 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void resetCellLayout(String template) {
+    private void resetCellLayout(String json) {
         try {
-            final CellFactory.Bundle bundle = CellFactory.load(IOUtils.stream2String(getResources().getAssets().open(template)));
-            dataMaps = bundle.dataMap;
-            cellLayout.setContentCell(bundle.root);
+            final TemplateFactory.Template template = TemplateFactory.load(IOUtils.stream2String(getResources().getAssets().open(json)));
+            dataMaps = template.data;
+            cellLayout.setContentCell(template.root);
             cellLayout.requestLayout(); // apply
         } catch (JSONException | IOException e) {
             e.printStackTrace();

@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "targetResolution": 1920,
   "root": {
     "type": "linear",
     "divider": 10,
@@ -145,7 +146,7 @@
         "row": 2,
         "column": 5,
         "divider": 10,
-        "width": 1000,
+        "width": 2000,
         "cells": [
           {
             "style": 1,
