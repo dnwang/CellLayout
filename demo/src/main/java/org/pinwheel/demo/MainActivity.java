@@ -2,6 +2,7 @@ package org.pinwheel.demo;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.os.Bundle;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,10 +32,10 @@ public final class MainActivity extends Activity {
     private static final String TAG = "MainActivity";
 
     private CellLayout cellLayout;
-    private SparseArray<android.os.Bundle> dataMaps = new SparseArray<>();
+    private SparseArray<Bundle> dataMaps = new SparseArray<>();
 
     @Override
-    protected void onCreate(android.os.Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         init();
@@ -94,7 +95,7 @@ public final class MainActivity extends Activity {
             .addStyle(new StyleAdapter.Style(R.layout.item_style_movie) {
                 @Override
                 public void onBind(final Cell cell, StyleAdapter.Holder holder) {
-                    final android.os.Bundle args = dataMaps.get(cell.getId());
+                    final Bundle args = dataMaps.get(cell.getId());
                     final TextView text = holder.get(R.id.desc);
                     final ImageView image = holder.get(R.id.image);
                     final String title = null != args ? args.getString("title") : "";
@@ -113,7 +114,7 @@ public final class MainActivity extends Activity {
             .addStyle(2, new StyleAdapter.Style(R.layout.item_style_poster) {
                 @Override
                 public void onBind(Cell cell, StyleAdapter.Holder holder) {
-                    final android.os.Bundle args = dataMaps.get(cell.getId());
+                    final Bundle args = dataMaps.get(cell.getId());
                     final String posterUrl = null != args ? args.getString("poster") : null;
                     BitmapLoader.INSTANCE.display((ImageView) holder.get(R.id.image), posterUrl);
                 }
@@ -129,7 +130,7 @@ public final class MainActivity extends Activity {
                 @Override
                 public void onBind(Cell cell, StyleAdapter.Holder holder) {
                     cell.setNoHolder(true); // 滑动的时候始终展示，不用站位图代替
-                    final android.os.Bundle args = dataMaps.get(cell.getId());
+                    final Bundle args = dataMaps.get(cell.getId());
                     final String title = null != args ? args.getString("title") : "";
                     final TextView text = (TextView) holder.view;
                     text.setText(title);
