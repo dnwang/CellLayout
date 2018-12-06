@@ -18,7 +18,8 @@
             "columnCount": 1,
             "rowCount": 1,
             "data": {
-              "title": "eee"
+              "title": "eee",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
           },
           {
@@ -50,7 +51,8 @@
             "columnCount": 4,
             "rowCount": 4,
             "data": {
-              "title": "iii"
+              "title": "iii",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
           }
         ]
@@ -65,7 +67,10 @@
             "height": 600
           },
           {
-            "height": 600
+            "height": 600,
+            "data": {
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "height": 600,
@@ -101,7 +106,10 @@
             "height": 600
           },
           {
-            "height": 600
+            "height": 600,
+            "data": {
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "height": 600
@@ -113,7 +121,10 @@
             "height": 600
           },
           {
-            "height": 600
+            "height": 600,
+            "data": {
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "height": 600
@@ -143,7 +154,8 @@
             "columnCount": 3,
             "rowCount": 2,
             "data": {
-              "title": "qqq"
+              "title": "qqq",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
           },
           {

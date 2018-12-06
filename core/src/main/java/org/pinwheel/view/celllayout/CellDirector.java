@@ -37,6 +37,7 @@ final class CellDirector {
     }
 
     void measure(int width, int height) {
+        if (0 >= width && 0 >= height) return;
         if (!hasRoot() || root.isMeasured()) return;
         Log.d(CellLayout.TAG, "[director.measure] w: " + width + ", h: " + height);
         root.measure(width, height);

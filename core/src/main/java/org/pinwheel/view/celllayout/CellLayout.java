@@ -119,7 +119,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         Sync.release();
     }
 
-    private OnSelectChangedListener onSelectChangedListener;
+    private OnCellClickListener onCellClickListener;
+    private OnCellSelectedChangeListener onCellSelectedChangeListener;
 
     private final CellDirector director = new CellDirector();
     private final ViewManager viewManager = new ViewManager();
@@ -137,6 +138,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         setFocusable(true);
         setFocusableInTouchMode(true);
         setChildrenDrawingOrderEnabled(true);
+        setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
 //        setWillNotDraw(false);
 
         holderDrawable = new DefHolderDrawable();
@@ -179,8 +181,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    public void setOnSelectChangedListener(OnSelectChangedListener listener) {
-        this.onSelectChangedListener = listener;
+    public void setOnCellClickListener(OnCellClickListener listener) {
+        this.onCellClickListener = listener;
+    }
+
+    public void setOnCellSelectedChangeListener(OnCellSelectedChangeListener listener) {
+        this.onCellSelectedChangeListener = listener;
     }
 
     public void setOnRootCellScrollListener(CellGroup.OnScrollListener listener) {
@@ -329,14 +335,21 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     @Override
+    protected void onFocusChanged(boolean gainFocus, int direction, android.graphics.Rect previouslyFocusedRect) {
+        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
+        focusManager.onWrapperFocusChanged(gainFocus);
+    }
+
+    @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        director.measure(getMeasuredWidth(), getMeasuredHeight());
+        director.measure(getMeasuredWidth() - getPaddingLeft() - getPaddingBottom(),
+                getMeasuredHeight() - getPaddingTop() - getPaddingBottom());
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        director.layout(0, 0);
+        director.layout(getPaddingLeft(), getPaddingTop());
     }
 
     private final Point touchPoint = new Point();
@@ -492,7 +505,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
         @Override
         public boolean onSinglePress(int keyCode) {
-            return focusManager.moveFocusBy(focusManager.getFocus(), 0, convertKeyCodeToFocusDir(keyCode));
+            final Cell focusCell = focusManager.getFocus();
+            if (KeyEvent.KEYCODE_DPAD_CENTER == keyCode && null != focusCell && null != onCellClickListener) {
+                onCellClickListener.onClick(focusCell);
+                return true;
+            }
+            return focusManager.moveFocusBy(focusCell, 0, convertKeyCodeToFocusDir(keyCode));
         }
     };
 
@@ -614,8 +632,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onViewRecycled(Cell cell, View view);
     }
 
-    public interface OnSelectChangedListener {
-        void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView);
+    public interface OnCellSelectedChangeListener {
+        void onSelectedChanged(Cell oldCell, View oldView, Cell newCell, View newView);
+    }
+
+    public interface OnCellClickListener {
+        void onClick(Cell cell);
     }
 
     private final class ViewManager {
@@ -791,22 +813,41 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             focusCell = null;
         }
 
+        void onWrapperFocusChanged(final boolean gainFocus) {
+            if (null != focusCell) {
+                final View view = viewManager.findViewByCell(focusCell);
+                final View fromView = gainFocus ? null : view;
+                final Cell fromCell = gainFocus ? null : focusCell;
+                final View toView = gainFocus ? view : null;
+                final Cell toCell = gainFocus ? focusCell : null;
+                if (SCALE_FOCUS) {
+                    new SwitchScaleAction(fromView, toView).execute();
+                }
+                if (viewManager.adapter instanceof OnCellSelectedChangeListener) {
+                    ((OnCellSelectedChangeListener) viewManager.adapter).onSelectedChanged(fromCell, fromView, toCell, toView);
+                }
+                if (null != onCellSelectedChangeListener) {
+                    onCellSelectedChangeListener.onSelectedChanged(fromCell, fromView, toCell, toView);
+                }
+            }
+        }
+
         Cell getFocus() {
             return focusCell;
         }
 
-        void setFocus(Cell cell) {
+        void setFocus(final Cell cell) {
             final View from = viewManager.findViewByCell(focusCell);
             final View to = viewManager.findViewByCell(cell);
             if (null != from || null != to) {
                 if (SCALE_FOCUS) {
                     new SwitchScaleAction(from, to).execute();
                 }
-                if (viewManager.adapter instanceof OnSelectChangedListener) {
-                    ((OnSelectChangedListener) viewManager.adapter).onSelectChanged(focusCell, from, cell, to);
+                if (viewManager.adapter instanceof OnCellSelectedChangeListener) {
+                    ((OnCellSelectedChangeListener) viewManager.adapter).onSelectedChanged(focusCell, from, cell, to);
                 }
-                if (null != onSelectChangedListener) {
-                    onSelectChangedListener.onSelectChanged(focusCell, from, cell, to);
+                if (null != onCellSelectedChangeListener) {
+                    onCellSelectedChangeListener.onSelectedChanged(focusCell, from, cell, to);
                 }
             }
             if (null != focusCell) {
@@ -849,7 +890,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
 
         boolean moveFocusBy(final Cell from, final int distance, final int dir) {
-            if (null == from) return false;
+            if (null == from || dir < 0) return false;
             final CellGroup root = (CellGroup) director.getRoot();
             final int maxWidth = root.getContentWidth();
             final int maxHeight = root.getContentHeight();

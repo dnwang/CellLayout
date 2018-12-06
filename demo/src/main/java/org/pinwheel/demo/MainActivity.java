@@ -10,6 +10,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONException;
+import org.pinwheel.agility2.utils.CommonTools;
 import org.pinwheel.agility2.utils.IOUtils;
 import org.pinwheel.view.celllayout.Cell;
 import org.pinwheel.view.celllayout.CellFactory;
@@ -41,15 +42,23 @@ public final class MainActivity extends Activity {
     }
 
     private void init() {
-        initNavigation();
         cellLayout = findViewById(R.id.cell_layout);
         cellLayout.setAdapter(adapter);
+        cellLayout.setOnCellClickListener(new CellLayout.OnCellClickListener() {
+            @Override
+            public void onClick(Cell cell) {
+                Toast.makeText(MainActivity.this, "click: " + cell.getId(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        initNavigation();
     }
 
     private void initNavigation() {
         final ViewGroup groups = findViewById(R.id.navigation);
         final int size = groups.getChildCount();
+        View def = null;
         for (int i = 0; i < size; i++) {
+            if (0 == i) def = groups.getChildAt(i);
             final int index = i;
             groups.getChildAt(i).setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -57,6 +66,9 @@ public final class MainActivity extends Activity {
                     resetCellLayout(TEMPLATE[Math.min(index, TEMPLATE.length - 1)]);
                 }
             });
+        }
+        if (null != def) {
+            def.performClick();
         }
     }
 
@@ -81,7 +93,7 @@ public final class MainActivity extends Activity {
     private final StyleAdapter adapter = new StyleAdapter()
             .addStyle(new StyleAdapter.Style(R.layout.item_style_movie) {
                 @Override
-                public void onBind(Cell cell, StyleAdapter.Holder holder) {
+                public void onBind(final Cell cell, StyleAdapter.Holder holder) {
                     final android.os.Bundle args = dataMaps.get(cell.getId());
                     final TextView text = holder.get(R.id.desc);
                     final ImageView image = holder.get(R.id.image);
@@ -111,12 +123,6 @@ public final class MainActivity extends Activity {
                     final TextView text = holder.get(R.id.desc);
                     text.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
                     text.setText("付费");
-                    holder.view.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            Toast.makeText(v.getContext(), "" + cell.getId(), Toast.LENGTH_SHORT).show();
-                        }
-                    });
                 }
             })
             .addStyle(1, new StyleAdapter.Style(R.layout.item_style_title) {

@@ -13,7 +13,7 @@ import android.view.View;
  * @author dnwang
  * @version 2018/11/28,13:49
  */
-public final class StyleAdapter implements CellLayout.ViewAdapter, CellLayout.OnSelectChangedListener {
+public final class StyleAdapter implements CellLayout.ViewAdapter, CellLayout.OnCellSelectedChangeListener {
 
     private static final int DEF_STYLE_ID = 0;
 
@@ -78,7 +78,7 @@ public final class StyleAdapter implements CellLayout.ViewAdapter, CellLayout.On
     }
 
     @Override
-    public final void onSelectChanged(Cell oldCell, View oldView, Cell newCell, View newView) {
+    public final void onSelectedChanged(Cell oldCell, View oldView, Cell newCell, View newView) {
         if (null != oldCell && null != oldView) {
             final Style oldStyle = viewStyles.get(getViewType(oldCell));
             if (null != oldStyle) {

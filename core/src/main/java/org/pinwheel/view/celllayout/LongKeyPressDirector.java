@@ -44,9 +44,9 @@ abstract class LongKeyPressDirector {
             downTime = -1;
             if (interceptLongPress(keyCode)) {
                 if (longPress) {
-                    onLongPress(KeyEvent.ACTION_UP, keyCode);
+                    return onLongPress(KeyEvent.ACTION_UP, keyCode);
                 } else {
-                    onSinglePress(keyCode);
+                    return onSinglePress(keyCode);
                 }
             }
         }

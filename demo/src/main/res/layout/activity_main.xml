@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#313C51"
+    android:gravity="center"
     android:orientation="vertical">
 
     <ScrollView
@@ -43,10 +44,38 @@
         </RadioGroup>
     </ScrollView>
 
-    <org.pinwheel.view.celllayout.CellLayout
-        android:id="@+id/cell_layout"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="left focus" />
+
+        <org.pinwheel.view.celllayout.CellLayout
+            android:id="@+id/cell_layout"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/item_bg"
+            android:padding="8dp" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="right focus" />
+    </LinearLayout>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="bottom focus" />
 
 </LinearLayout>
