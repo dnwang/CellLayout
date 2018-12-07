@@ -67,6 +67,7 @@
         "paddingLeft": 20,
         "paddingRight": 30,
         "orientation": 0,
+        "mask": true,
         "cells": [
           {
             "width": 400

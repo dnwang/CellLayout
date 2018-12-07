@@ -18,7 +18,7 @@ import java.util.List;
 public class CellGroup extends Cell implements Scrollable, Mask {
 
     @Attribute("mask")
-    boolean openMask = true;
+    boolean openMask = false;
 
     private final List<Cell> subCells = new ArrayList<>();
 

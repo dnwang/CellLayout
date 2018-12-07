@@ -139,6 +139,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     private void init(final AttributeSet attrs) {
         director.setCallback(this);
+        setClipChildren(false);
         setFocusable(true);
         setFocusableInTouchMode(true);
         setChildrenDrawingOrderEnabled(true);
