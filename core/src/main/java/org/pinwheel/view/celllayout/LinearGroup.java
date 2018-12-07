@@ -2,6 +2,10 @@ package org.pinwheel.view.celllayout;
 
 import android.util.Log;
 
+import static org.pinwheel.view.celllayout.CellLayout.BORDER_STOKE_WIDTH;
+import static org.pinwheel.view.celllayout.CellLayout.SCALE_MAX;
+import static org.pinwheel.view.celllayout.CellLayout.SCALE_MIN;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -76,7 +80,7 @@ public class LinearGroup extends CellGroup {
         super.measure(width, height);
         final int size = getCellCount();
         for (int i = 0; i < size; i++) {
-            Cell cell = getCellAt(i);
+            final Cell cell = getCellAt(i);
             if (cell.isMeasured()) continue;
             CellGroup.Params p = cell.getParams();
             if (HORIZONTAL == orientation) {
@@ -92,6 +96,7 @@ public class LinearGroup extends CellGroup {
                 int w = width - paddingLeft - paddingRight - p.marginLeft - p.marginRight;
                 cell.measure(w, p.height);
             }
+            measureScaleExpand(i, cell);
         }
         measureContent();
     }
@@ -132,6 +137,48 @@ public class LinearGroup extends CellGroup {
 
     public int getOrientation() {
         return orientation;
+    }
+
+    private static final float D_SCALE = SCALE_MAX - SCALE_MIN;
+
+    private void measureScaleExpand(final int index, final Cell cell) {
+        if (HORIZONTAL == orientation) {
+            if (0 == index) {
+                leftScaleExpand = (int) (cell.width() * D_SCALE / 2) + BORDER_STOKE_WIDTH * 2;
+            } else if (getCellCount() - 1 == index) {
+                rightScaleExpand = (int) (cell.width() * D_SCALE / 2) + BORDER_STOKE_WIDTH * 2;
+            }
+            int tmp = (int) (cell.height() * D_SCALE / 2) + BORDER_STOKE_WIDTH * 2;
+            if (tmp > topScaleExpand) {
+                topScaleExpand = tmp;
+                bottomScaleExpand = tmp;
+            }
+        } else {
+            // TODO: 2018/12/7
+        }
+    }
+
+    private int leftScaleExpand, topScaleExpand, rightScaleExpand, bottomScaleExpand;
+
+    @Override
+    public android.graphics.Rect getClipRectBy(Cell cell, boolean isMoving) {
+        int l, t, r, b;
+        if (isMoving) {
+            l = getLayoutX() + cell.getParentScrollX() - getScrollX();
+            t = getLayoutY() + cell.getParentScrollY() - getScrollY();
+            r = l + width();
+            b = t + height();
+        } else {
+            l = getLeft();
+            t = getTop();
+            r = getRight();
+            b = getBottom();
+        }
+        return new android.graphics.Rect(
+                l + Math.min(paddingLeft - leftScaleExpand, 0),
+                t + Math.min(paddingTop - topScaleExpand, 0),
+                r - Math.min(paddingRight - rightScaleExpand, 0),
+                b - Math.min(paddingBottom - bottomScaleExpand, 0));
     }
 
     @Override

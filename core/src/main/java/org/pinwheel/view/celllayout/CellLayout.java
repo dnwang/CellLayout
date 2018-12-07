@@ -2,6 +2,7 @@ package org.pinwheel.view.celllayout;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -134,6 +135,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     private BorderDrawable borderDrawable;
 
     private static final boolean SCALE_FOCUS = true;
+    static final int BORDER_STOKE_WIDTH = dip2px(1);
 
     private void init(final AttributeSet attrs) {
         director.setCallback(this);
@@ -144,7 +146,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 //        setWillNotDraw(false);
 
         holderDrawable = new DefHolderDrawable(Color.parseColor("#4F586E"));
-        borderDrawable = new DefBorderDrawable(Color.WHITE, dip2px(1));
+        borderDrawable = new DefBorderDrawable(Color.WHITE, BORDER_STOKE_WIDTH);
     }
 
     public void setHolderDrawable(HolderDrawable drawable) {
@@ -308,8 +310,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         abstract void onMove(final int dx, final int dy);
     }
 
-    private final static float SCALE_MAX = 1.1f;
-    private final static float SCALE_MIN = 1f;
+    final static float SCALE_MAX = 1.1f;
+    final static float SCALE_MIN = 1.0f;
 
     private final class SwitchScaleAction {
         int sum = 4;
@@ -544,24 +546,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         super.draw(canvas);
     }
 
-    @Deprecated
-    private void applyParentMask(Canvas canvas, Cell cell) {
-        final CellGroup parent = cell.getParent();
-        if (null != parent && parent.mask) {
-            final int l, t;
-            if (isMoving()) {
-                parent.computeParentScroll();
-                l = parent.getLayoutXWithParentScroll();
-                t = parent.getLayoutYWithParentScroll();
-            } else {
-                l = parent.getLeft();
-                t = parent.getTop();
-            }
-            canvas.clipRect(new android.graphics.Rect(l, t,
-                    l + parent.width(), t + parent.height()));
-        }
-    }
-
     private void onDrawHolders(final Canvas canvas) {
         if (null == holderDrawable) return;
         viewManager.foreachActiveCells(new Filter<Cell>() {
@@ -569,9 +553,12 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             public boolean call(Cell cell) {
                 if (!cell.hasContent()) {
                     cell.computeParentScroll();
-                    final int l = cell.getLayoutXWithParentScroll();
-                    final int t = cell.getLayoutYWithParentScroll();
+                    final int l = cell.getLayoutX() + cell.getParentScrollX();
+                    final int t = cell.getLayoutY() + cell.getParentScrollY();
+                    canvas.save();
+                    setClipRectBy(canvas, cell);
                     holderDrawable.onDraw(canvas, cell, l, t);
+                    canvas.restore();
                 }
                 return false;
             }
@@ -607,21 +594,33 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         final Cell cell = viewManager.findCellByView(child);
         if (null != cell) {
             cell.computeParentScroll();
-            final int l = cell.getLayoutXWithParentScroll();
-            final int t = cell.getLayoutYWithParentScroll();
+            final int l = cell.getLayoutX() + cell.getParentScrollX();
+            final int t = cell.getLayoutY() + cell.getParentScrollY();
+            canvas.save();
+            // clip
+            setClipRectBy(canvas, cell);
             // cellLayout has focus
             if (null != borderDrawable && hasFocus() && cell.hasFocus()) {
                 canvas.save();
                 borderDrawable.onDraw(canvas, cell, l, t, child.getScaleX(), child.getScaleY());
                 canvas.restore();
             }
-            canvas.save();
             canvas.translate(l - child.getLeft(), t - child.getTop());
             final boolean result = super.drawChild(canvas, child, drawingTime);
             canvas.restore();
             return result;
         } else {
             return false;
+        }
+    }
+
+    private void setClipRectBy(Canvas canvas, Cell cell) {
+        final CellGroup p = cell.getParent();
+        if (null != p && p.openMask) {
+            final android.graphics.Rect rect = p.getClipRectBy(cell, isMoving());
+            if (null != rect) {
+                canvas.clipRect(rect);
+            }
         }
     }
 
@@ -1058,7 +1057,14 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     // -------- basic methods
 
-    private static int convertKeyCodeToFocusDir(final int keyCode) {
+    private void moveSystemFocusBy(final int dir) {
+        final View v = FocusFinder.getInstance().findNextFocus((ViewGroup) getRootView(), this, dir);
+        if (v != null) {
+            v.requestFocus(dir);
+        }
+    }
+
+    static int convertKeyCodeToFocusDir(final int keyCode) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 return View.FOCUS_LEFT;
@@ -1073,7 +1079,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    private static Cell findFirstFocusableCell(CellGroup group) {
+    static Cell findFirstFocusableCell(CellGroup group) {
         int size = group.getCellCount();
         for (int i = 0; i < size; i++) {
             Cell subCell = group.getCellAt(i);
@@ -1092,15 +1098,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         return null;
     }
 
-    private void moveSystemFocusBy(final int dir) {
-        final View v = FocusFinder.getInstance().findNextFocus((ViewGroup) getRootView(), this, dir);
-        if (v != null) {
-            v.requestFocus(dir);
-        }
-    }
-
-    private int dip2px(float dpValue) {
-        float scale = getResources().getDisplayMetrics().density;
+    static int dip2px(float dpValue) {
+        float scale = Resources.getSystem().getDisplayMetrics().density;
         return (int) (dpValue * scale + 0.5F);
     }
 

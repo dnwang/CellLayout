@@ -1,5 +1,7 @@
 package org.pinwheel.view.celllayout;
 
+import android.graphics.Rect;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +15,14 @@ import java.util.List;
  * @author dnwang
  * @version 2018/11/15,14:01
  */
-public class CellGroup extends Cell implements Scrollable {
+public class CellGroup extends Cell implements Scrollable, Mask {
+
+    @Attribute("mask")
+    boolean openMask = true;
 
     private final List<Cell> subCells = new ArrayList<>();
+
     OnScrollListener onScrollListener;
-    @Attribute
-    boolean mask = false;
 
     CellGroup() {
         super();
@@ -106,6 +110,20 @@ public class CellGroup extends Cell implements Scrollable {
     @Override
     public int getScrollY() {
         return scrollY;
+    }
+
+    /**
+     * {@link CellGroup#getClipRectBy(Cell, boolean)}
+     */
+    @Deprecated
+    @Override
+    public Rect getClipRect() {
+        return null;
+    }
+
+    @Override
+    public android.graphics.Rect getClipRectBy(Cell cell, boolean isMoving) {
+        return null;
     }
 
     @Override

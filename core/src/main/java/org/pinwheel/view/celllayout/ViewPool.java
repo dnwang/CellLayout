@@ -5,6 +5,8 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.pinwheel.view.celllayout.CellLayout.SCALE_MIN;
+
 /**
  * Copyright (C), 2018 <br>
  * <br>
@@ -64,8 +66,8 @@ final class ViewPool {
         if (view.hasFocus()) {
             view.clearFocus();
         }
-        view.setScaleX(1f);
-        view.setScaleY(1f);
+        view.setScaleX(SCALE_MIN);
+        view.setScaleY(SCALE_MIN);
         final Holder holder = new Holder();
         holder.view = view;
         if (view.isFocusable()) {

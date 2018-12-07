@@ -63,6 +63,7 @@
         "type": "linear",
         "height": 300,
         "divider": 10,
+        "padding": 10,
         "orientation": 0,
         "cells": [
           {

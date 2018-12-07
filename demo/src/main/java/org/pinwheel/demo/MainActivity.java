@@ -69,15 +69,6 @@ public final class MainActivity extends Activity {
                     }
                 }
             }
-
-            @Override
-            public void onScrollToStart(CellGroup group) {
-                final Cell root = cellLayout.getContentCell();
-                if (root instanceof LinearGroup) {
-                    ((LinearGroup) root).setDivider(100);
-                    cellLayout.requestLayout();
-                }
-            }
         });
         initNavigation();
     }

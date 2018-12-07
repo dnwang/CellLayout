@@ -53,16 +53,12 @@ public class Cell extends Rect implements Serializable {
         parentScrollY = scrollY;
     }
 
-    @Override
-    void offset(int dx, int dy) {
-        super.offset(dx, dy);
-        parentScrollX = parentScrollY = 0;
+    final int getLayoutX() {
+        return layoutX;
     }
 
-    @Override
-    void offsetTo(int newLeft, int newTop) {
-        super.offsetTo(newLeft, newTop);
-        parentScrollX = parentScrollY = 0;
+    final int getLayoutY() {
+        return layoutY;
     }
 
     @Override
@@ -112,12 +108,12 @@ public class Cell extends Rect implements Serializable {
         }
     }
 
-    int getLayoutXWithParentScroll() {
-        return layoutX + parentScrollX;
+    final int getParentScrollX() {
+        return parentScrollX;
     }
 
-    int getLayoutYWithParentScroll() {
-        return layoutY + parentScrollY;
+    final int getParentScrollY() {
+        return parentScrollY;
     }
 
     private int layoutX, layoutY;
@@ -139,30 +135,6 @@ public class Cell extends Rect implements Serializable {
             _computeParentScroll(pp);
         }
     }
-
-//    final void requestLayout() {
-//        _requestLayout(this);
-//    }
-//
-//    private void _requestLayout(Cell cell) {
-//        state &= ~FLAG_HAS_LAYOUT;
-//        final CellGroup p = cell.getParent();
-//        if (null != p) {
-//            _requestLayout(p);
-//        }
-//    }
-//
-//    final void requestMeasure() {
-//        _requestMeasure(this);
-//    }
-//
-//    private void _requestMeasure(Cell cell) {
-//        state &= ~FLAG_HAS_MEASURED;
-//        final CellGroup p = cell.getParent();
-//        if (null != p) {
-//            _requestMeasure(p);
-//        }
-//    }
 
     final void requestMeasureAndLayout() {
         _requestMeasureAndLayout(this);
