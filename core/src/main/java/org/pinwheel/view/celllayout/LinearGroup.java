@@ -35,6 +35,10 @@ public class LinearGroup extends CellGroup {
         this.divider = divider;
     }
 
+    public void setOrientation(int orientation) {
+        this.orientation = orientation;
+    }
+
     @Override
     public CellGroup.Params getDefaultParams() {
         return new LinearGroup.Params();

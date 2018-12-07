@@ -15,10 +15,8 @@ import java.util.List;
  */
 public class CellGroup extends Cell implements Scrollable {
 
-    OnScrollListener onScrollListener;
-
     private final List<Cell> subCells = new ArrayList<>();
-
+    OnScrollListener onScrollListener;
     @Attribute
     boolean mask = false;
 
@@ -82,19 +80,6 @@ public class CellGroup extends Cell implements Scrollable {
         subCells.remove(cell);
         cell.setParent(null);
         return true;
-    }
-
-    void requestMeasureAndLayout() {
-        _requestMeasureAndLayout(this);
-    }
-
-    private void _requestMeasureAndLayout(CellGroup p) {
-        p.forceMeasure();
-        p.forceLayout();
-        final CellGroup pp = p.getParent();
-        if (null != pp) {
-            _requestMeasureAndLayout(pp);
-        }
     }
 
     public Cell getCellAt(int order) {

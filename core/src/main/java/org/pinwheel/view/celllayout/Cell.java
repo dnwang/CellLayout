@@ -140,6 +140,43 @@ public class Cell extends Rect implements Serializable {
         }
     }
 
+//    final void requestLayout() {
+//        _requestLayout(this);
+//    }
+//
+//    private void _requestLayout(Cell cell) {
+//        state &= ~FLAG_HAS_LAYOUT;
+//        final CellGroup p = cell.getParent();
+//        if (null != p) {
+//            _requestLayout(p);
+//        }
+//    }
+//
+//    final void requestMeasure() {
+//        _requestMeasure(this);
+//    }
+//
+//    private void _requestMeasure(Cell cell) {
+//        state &= ~FLAG_HAS_MEASURED;
+//        final CellGroup p = cell.getParent();
+//        if (null != p) {
+//            _requestMeasure(p);
+//        }
+//    }
+
+    final void requestMeasureAndLayout() {
+        _requestMeasureAndLayout(this);
+    }
+
+    private void _requestMeasureAndLayout(Cell cell) {
+        state &= ~FLAG_HAS_LAYOUT;
+        state &= ~FLAG_HAS_MEASURED;
+        final CellGroup p = cell.getParent();
+        if (null != p) {
+            _requestMeasureAndLayout(p);
+        }
+    }
+
     // --------- state
 
     final void clearAllState() {
@@ -206,16 +243,8 @@ public class Cell extends Rect implements Serializable {
         return (state & FLAG_NO_HOLDER) != 0;
     }
 
-    final void forceLayout() {
-        state &= ~FLAG_HAS_LAYOUT;
-    }
-
     final boolean isLayout() {
         return (state & FLAG_HAS_LAYOUT) != 0;
-    }
-
-    final void forceMeasure() {
-        state &= ~FLAG_HAS_MEASURED;
     }
 
     final boolean isMeasured() {

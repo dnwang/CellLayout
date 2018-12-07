@@ -122,6 +122,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     private OnCellClickListener onCellClickListener;
     private OnCellSelectedChangeListener onCellSelectedChangeListener;
+    private CellGroup.OnScrollListener onRootCellScrollListener;
 
     private final CellDirector director = new CellDirector();
     private final ViewManager viewManager = new ViewManager();
@@ -165,10 +166,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     public void setContentCell(Cell root) {
         viewManager.checkAndReleaseCache(true);
         focusManager.clear();
-        if (director.getRoot() instanceof CellGroup) { // clear
-            ((CellGroup) director.getRoot()).setOnScrollListener(null);
-        }
+        detachScrollListenerFromRoot();
         director.setRoot(root);
+        attachScrollListenerToRoot();
     }
 
     public Cell getContentCell() {
@@ -191,11 +191,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     public void setOnRootCellScrollListener(CellGroup.OnScrollListener listener) {
-        if (!director.hasRoot()) return;
-        final Cell root = director.getRoot();
-        if (root instanceof CellGroup) {
-            ((CellGroup) root).setOnScrollListener(listener);
-        }
+        this.onRootCellScrollListener = listener;
+        attachScrollListenerToRoot();
     }
 
     public Cell findCellByView(View v) {
@@ -261,6 +258,22 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     }
                 }
             }.execute();
+        }
+    }
+
+    private void detachScrollListenerFromRoot() {
+        if (!director.hasRoot()) return;
+        final Cell root = director.getRoot();
+        if (root instanceof CellGroup) {
+            ((CellGroup) root).setOnScrollListener(null);
+        }
+    }
+
+    private void attachScrollListenerToRoot() {
+        if (!director.hasRoot()) return;
+        final Cell root = director.getRoot();
+        if (root instanceof CellGroup) {
+            ((CellGroup) root).setOnScrollListener(onRootCellScrollListener);
         }
     }
 

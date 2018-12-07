@@ -13,7 +13,9 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.pinwheel.agility2.utils.IOUtils;
 import org.pinwheel.view.celllayout.Cell;
+import org.pinwheel.view.celllayout.CellGroup;
 import org.pinwheel.view.celllayout.CellLayout;
+import org.pinwheel.view.celllayout.LinearGroup;
 import org.pinwheel.view.celllayout.StyleAdapter;
 import org.pinwheel.view.celllayout.TemplateFactory;
 
@@ -49,6 +51,32 @@ public final class MainActivity extends Activity {
             @Override
             public void onClick(Cell cell) {
                 Toast.makeText(MainActivity.this, "click: " + cell.getId(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        cellLayout.setOnRootCellScrollListener(new CellGroup.OnScrollAdapter() {
+            @Override
+            public void onScrollToEnd(CellGroup group) {
+                final Cell root = cellLayout.getContentCell();
+                if (root instanceof LinearGroup) {
+                    if (((LinearGroup) root).getOrientation() == LinearGroup.VERTICAL) {
+                        try {
+                            final TemplateFactory.Template template = TemplateFactory.load(IOUtils.stream2String(getResources().getAssets().open("template_1.json")));
+                            cellLayout.addCell(template.root);
+                            cellLayout.requestLayout();
+                        } catch (JSONException | IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onScrollToStart(CellGroup group) {
+                final Cell root = cellLayout.getContentCell();
+                if (root instanceof LinearGroup) {
+                    ((LinearGroup) root).setDivider(100);
+                    cellLayout.requestLayout();
+                }
             }
         });
         initNavigation();
