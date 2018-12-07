@@ -154,7 +154,16 @@ public class LinearGroup extends CellGroup {
                 bottomScaleExpand = tmp;
             }
         } else {
-            // TODO: 2018/12/7
+            if (0 == index) {
+                topScaleExpand = (int) (cell.height() * D_SCALE / 2) + BORDER_STOKE_WIDTH * 2;
+            } else if (getCellCount() - 1 == index) {
+                bottomScaleExpand = (int) (cell.height() * D_SCALE / 2) + BORDER_STOKE_WIDTH * 2;
+            }
+            int tmp = (int) (cell.width() * D_SCALE / 2) + BORDER_STOKE_WIDTH * 2;
+            if (tmp > leftScaleExpand) {
+                leftScaleExpand = tmp;
+                rightScaleExpand = tmp;
+            }
         }
     }
 
