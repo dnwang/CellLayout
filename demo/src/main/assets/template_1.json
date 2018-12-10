@@ -8,6 +8,7 @@
     "cells": [
       {
         "style": 1,
+        "focusable": false,
         "height": 200,
         "data": {
           "title": "热门推荐"

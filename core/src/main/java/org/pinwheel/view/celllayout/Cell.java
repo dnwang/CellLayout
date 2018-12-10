@@ -27,6 +27,8 @@ public class Cell extends Rect implements Serializable {
     //
     @Attribute(fixedResolution = true)
     public int paddingLeft, paddingTop, paddingRight, paddingBottom;
+    @Attribute
+    private boolean focusable = true; // just change value from template json file
     //
     private int measureWidth, measureHeight;
     //
@@ -188,7 +190,7 @@ public class Cell extends Rect implements Serializable {
     }
 
     public final boolean isFocusable() {
-        return (state & FLAG_DISABLE_FOCUS) == 0;
+        return focusable && (state & FLAG_DISABLE_FOCUS) == 0;
     }
 
     final void setFocus(boolean is) {

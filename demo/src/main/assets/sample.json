@@ -49,6 +49,7 @@
             "style": 1,
             "x": 1,
             "y": 0,
+            "focusable": false,
             "marginLeft": 10,
             "columnCount": 4,
             "rowCount": 4,

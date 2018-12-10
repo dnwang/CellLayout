@@ -6,6 +6,8 @@
     android:gravity="center"
     android:padding="10dp"
     android:text="--"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
     android:textColor="@android:color/white"
     android:textSize="32sp"
     android:textStyle="bold" />
