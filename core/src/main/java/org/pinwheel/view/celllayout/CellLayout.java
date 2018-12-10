@@ -527,8 +527,17 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         @Override
         public boolean onSinglePress(int keyCode) {
             final Cell focusCell = focusManager.getFocus();
-            if (KeyEvent.KEYCODE_DPAD_CENTER == keyCode && null != focusCell && null != onCellClickListener) {
-                onCellClickListener.onClick(focusCell);
+            if (KeyEvent.KEYCODE_DPAD_CENTER == keyCode && null != focusCell) {
+                boolean intercept = false;
+                if (null != onCellClickListener) {
+                    intercept = onCellClickListener.onClick(focusCell);
+                }
+                if (!intercept) {
+                    final View focusView = viewManager.findViewByCell(focusCell);
+                    if (null != focusView) {
+                        focusView.performClick();
+                    }
+                }
                 return true;
             }
             return focusManager.moveFocusBy(focusCell, 0, convertKeyCodeToFocusDir(keyCode));
@@ -673,7 +682,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     }
 
     public interface OnCellClickListener {
-        void onClick(Cell cell);
+        boolean onClick(Cell cell);
     }
 
     private final class ViewManager {

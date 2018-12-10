@@ -49,8 +49,9 @@ public final class MainActivity extends Activity {
         cellLayout.setHolderDrawable(new CellLayout.DefHolderDrawable(getResources().getDrawable(R.drawable.img_holder)));
         cellLayout.setOnCellClickListener(new CellLayout.OnCellClickListener() {
             @Override
-            public void onClick(Cell cell) {
+            public boolean onClick(Cell cell) {
                 Toast.makeText(MainActivity.this, "click: " + cell.getId(), Toast.LENGTH_SHORT).show();
+                return false;
             }
         });
         cellLayout.setOnRootCellScrollListener(new CellGroup.OnScrollAdapter() {
@@ -121,6 +122,12 @@ public final class MainActivity extends Activity {
                     final String posterUrl = null != args ? args.getString("poster") : null;
                     text.setText(title);
                     BitmapLoader.INSTANCE.display(image, posterUrl);
+                    holder.view.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Toast.makeText(MainActivity.this, "OnClickListener", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
 
                 @Override

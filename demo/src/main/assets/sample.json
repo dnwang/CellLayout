@@ -71,9 +71,11 @@
         "mask": true,
         "cells": [
           {
+            "style": 2,
             "width": 400
           },
           {
+            "style": 2,
             "width": 200
           },
           {
@@ -84,6 +86,7 @@
             }
           },
           {
+            "style": 2,
             "width": 200
           },
           {
@@ -93,9 +96,11 @@
             }
           },
           {
+            "style": 2,
             "width": 200
           },
           {
+            "style": 2,
             "width": 200
           },
           {
