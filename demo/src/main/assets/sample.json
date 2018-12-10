@@ -46,7 +46,6 @@
             "rowCount": 1
           },
           {
-            "style": 1,
             "x": 1,
             "y": 0,
             "focusable": false,
@@ -71,11 +70,9 @@
         "mask": true,
         "cells": [
           {
-            "style": 2,
             "width": 400
           },
           {
-            "style": 2,
             "width": 200
           },
           {
@@ -86,7 +83,6 @@
             }
           },
           {
-            "style": 2,
             "width": 200
           },
           {
@@ -96,11 +92,9 @@
             }
           },
           {
-            "style": 2,
             "width": 200
           },
           {
-            "style": 2,
             "width": 200
           },
           {
@@ -158,7 +152,6 @@
         "height": 200,
         "cells": [
           {
-            "style": 1,
             "x": 0,
             "y": 0,
             "columnCount": 3,

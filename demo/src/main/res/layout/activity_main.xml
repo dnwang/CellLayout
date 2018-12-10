@@ -22,25 +22,25 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="12dp"
-                android:text="推荐" />
+                android:text="垂直" />
 
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="12dp"
-                android:text="电影" />
+                android:text="水平" />
 
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="12dp"
-                android:text="音乐" />
+                android:text="垂直列表" />
 
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="12dp"
-                android:text="小视频" />
+                android:text="水平列表" />
         </RadioGroup>
     </ScrollView>
 

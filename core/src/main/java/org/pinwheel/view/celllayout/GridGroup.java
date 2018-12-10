@@ -31,6 +31,10 @@ public class GridGroup extends CellGroup {
         this.divider = divider;
     }
 
+    public int getDivider() {
+        return divider;
+    }
+
     @Override
     public CellGroup.Params getDefaultParams() {
         return new GridGroup.Params();

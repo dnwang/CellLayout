@@ -15,7 +15,7 @@ import android.view.View;
  */
 public final class StyleAdapter implements CellLayout.ViewAdapter, CellLayout.OnCellSelectedChangeListener {
 
-    private static final int DEF_STYLE_ID = 0;
+    static final int DEF_STYLE_ID = 0;
 
     private SparseArray<Style> viewStyles = new SparseArray<>();
     LayoutInflater inflater;

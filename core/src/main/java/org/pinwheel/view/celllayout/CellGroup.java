@@ -208,7 +208,7 @@ public class CellGroup extends Cell implements Scrollable, Mask {
 
     public static class Params implements Serializable {
         @Attribute("style")
-        public int styleId = 0;
+        public int styleId = StyleAdapter.DEF_STYLE_ID;
         @Attribute(fixedResolution = true)
         public int width, height;
         @Attribute(fixedResolution = true)

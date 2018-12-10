@@ -39,8 +39,16 @@ public class LinearGroup extends CellGroup {
         this.divider = divider;
     }
 
+    public int getDivider() {
+        return divider;
+    }
+
     public void setOrientation(int orientation) {
         this.orientation = orientation;
+    }
+
+    public int getOrientation() {
+        return orientation;
     }
 
     @Override
@@ -133,10 +141,6 @@ public class LinearGroup extends CellGroup {
                 tmp += (cell.height() + p.marginBottom);
             }
         }
-    }
-
-    public int getOrientation() {
-        return orientation;
     }
 
     private static final float D_SCALE = SCALE_MAX - SCALE_MIN;
