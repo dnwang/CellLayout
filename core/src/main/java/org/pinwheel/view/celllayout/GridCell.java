@@ -9,6 +9,7 @@ package org.pinwheel.view.celllayout;
  * @author dnwang
  * @version 2018/12/10,15:02
  */
+@Deprecated
 public final class GridCell extends LinearGroup {
 
     private int column;

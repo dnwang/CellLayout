@@ -10,16 +10,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.pinwheel.agility2.utils.IOUtils;
 import org.pinwheel.view.celllayout.Cell;
 import org.pinwheel.view.celllayout.CellGroup;
 import org.pinwheel.view.celllayout.CellLayout;
-import org.pinwheel.view.celllayout.GridCell;
 import org.pinwheel.view.celllayout.LinearGroup;
 import org.pinwheel.view.celllayout.StyleAdapter;
+import org.pinwheel.view.celllayout.TemplateFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.io.IOException;
 
 /**
  * Copyright (C), 2018 <br>
@@ -58,12 +58,15 @@ public final class MainActivity extends Activity {
             @Override
             public void onScrollToEnd(CellGroup group) {
                 final Cell root = cellLayout.getContentCell();
-                if (root instanceof GridCell) {
-                    for (int i = 0; i < 3; i++) {
-                        data.add(Integer.MIN_VALUE);
+                if (root instanceof LinearGroup && ((LinearGroup) root).getOrientation() == LinearGroup.VERTICAL) {
+                    try {
+                        final TemplateFactory.Template template = TemplateFactory.load(IOUtils.stream2String(getResources().getAssets().open("sample.json")));
+                        mergeData(template.data);
+                        cellLayout.addCell(template.root);
+                        cellLayout.requestLayout(); // apply
+                    } catch (JSONException | IOException e) {
+                        e.printStackTrace();
                     }
-                    ((GridCell) root).reSize(data.size());
-                    cellLayout.requestLayout();
                 }
             }
         });
@@ -89,26 +92,22 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private List data = new ArrayList();
-
     private void resetCellLayout(String json) {
-//        try {
-//            final TemplateFactory.Template template = TemplateFactory.load(IOUtils.stream2String(getResources().getAssets().open(json)));
-//            dataMaps = template.data;
-//            cellLayout.setContentCell(template.root);
-//            cellLayout.requestLayout(); // apply
-//        } catch (JSONException | IOException e) {
-//            e.printStackTrace();
-//        }
-        for (int i = 0; i < 11; i++) {
-            data.add(Integer.MIN_VALUE);
+        try {
+            final TemplateFactory.Template template = TemplateFactory.load(IOUtils.stream2String(getResources().getAssets().open(json)));
+            dataMaps = template.data;
+            cellLayout.setContentCell(template.root);
+            cellLayout.requestLayout(); // apply
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
         }
+    }
 
-        GridCell gridCell = new GridCell(LinearGroup.VERTICAL, 3);
-        gridCell.setPadding(80, 80, 80, 80);
-        gridCell.setDivider(30);
-        gridCell.reSize(data.size());
-        cellLayout.setContentCell(gridCell);
+    private void mergeData(SparseArray<Bundle> data) {
+        final int size = data.size();
+        for (int i = 0; i < size; i++) {
+            dataMaps.put(data.keyAt(i), data.valueAt(i));
+        }
     }
 
     private static final String[] TEMPLATE = new String[]{

@@ -1,24 +1,40 @@
 {
   "version": 1,
+  // json协议版本
   "targetResolution": 720,
+  // 目标屏幕分辨率适配
   "root": {
     "type": "linear",
+    // Group类型， 不标记为纯Cell
     "divider": 10,
+    // 间隔
     "padding": 80,
+    // 上下左右 padding
     "orientation": 1,
+    // 垂直布局方向
     "cells": [
+      // 孩子
       {
         "type": "grid",
+        // 嵌套的网格类型Group
         "height": 300,
+        // 父亲为垂直方向，自身需要绝对高度
         "row": 4,
+        // 行
         "column": 5,
+        // 列
         "cells": [
           {
             "x": 0,
+            // 在父亲中的行位置
             "y": 0,
+            // 列位置
             "columnCount": 1,
+            // x方向所占网格权重（横起占几个格格）
             "rowCount": 1,
+            // y方向权重
             "data": {
+              // 附带绑定数据，与布局无关
               "title": "eee",
               "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
             }
@@ -49,6 +65,7 @@
             "x": 1,
             "y": 0,
             "focusable": false,
+            // 能否获取焦点
             "marginLeft": 10,
             "columnCount": 4,
             "rowCount": 4,
@@ -68,12 +85,14 @@
         "paddingRight": 30,
         "orientation": 0,
         "mask": true,
+        // 根据自身宽高，裁剪孩子（超出自己边界的孩子不可见）
         "cells": [
           {
-            "width": 400
-          },
-          {
-            "width": 200
+            "width": 400,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "width": 200,
@@ -83,7 +102,18 @@
             }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
+          },
+          {
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "width": 200,
@@ -92,16 +122,32 @@
             }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "width": 200,
@@ -110,19 +156,39 @@
             }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
             "width": 200,
@@ -131,16 +197,32 @@
             }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 200
+            "width": 200,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           },
           {
-            "width": 600
+            "width": 600,
+            "data": {
+              "title": "ooo",
+              "poster": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543469439860&di=808b115c4c8d19ebb8a43c913960563f&imgtype=0&src=http%3A%2F%2Fpic37.photophoto.cn%2F20151121%2F0020033050891312_b.jpg"
+            }
           }
         ]
       },
