@@ -550,7 +550,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             }
         }
 
-        private static final int OFFSET = 300;
         private LinearGroup moveGroup;
 
         private void prepareLongPress(int orientation) {
@@ -563,6 +562,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
 
         private void releaseLongPress() {
+            removeCallbacks(moveAction);
+            moveAction = null;
             moveGroup = null;
             final boolean tmp = (flag & FLAG_MOVING_LONG_PRESS) != 0;
             flag &= ~FLAG_MOVING_LONG_PRESS;
@@ -574,39 +575,54 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         boolean intercept = false;
         int moveDistance = 0;
 
+        private Runnable moveAction;
+
         @Override
-        public boolean onLongPress(int action, int keyCode) {
+        public boolean onLongPress(int action, final int keyCode) {
             if (KeyEvent.ACTION_DOWN == action) {
                 if (!intercept) {
                     if ((flag & FLAG_MOVING_LONG_PRESS) == 0) {
                         prepareLongPress((KeyEvent.KEYCODE_DPAD_LEFT == keyCode || KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
                                 ? LinearGroup.HORIZONTAL : LinearGroup.VERTICAL);
-                    } else { // moving
-                        boolean moved = false;
-                        switch (keyCode) {
-                            case KeyEvent.KEYCODE_DPAD_LEFT:
-                                moved = director.scrollBy(moveGroup, OFFSET, 0);
-                                break;
-                            case KeyEvent.KEYCODE_DPAD_UP:
-                                moved = director.scrollBy(moveGroup, 0, OFFSET);
-                                break;
-                            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                                moved = director.scrollBy(moveGroup, -OFFSET, 0);
-                                break;
-                            case KeyEvent.KEYCODE_DPAD_DOWN:
-                                moved = director.scrollBy(moveGroup, 0, -OFFSET);
-                                break;
-                        }
-                        if (moved) {
-                            moveDistance += OFFSET;
-                            invalidate();
-                        } else {
-                            // move complete at the bottom
-                            releaseLongPress();
-                            intercept = true;
-                            // find new focus
-                            focusManager.moveFocusBy(focusManager.getFocus(), moveDistance, convertKeyCodeToFocusDir(keyCode));
-                        }
+                    } else if (null == moveAction) { // moving
+                        moveAction = new Runnable() {
+                            private int sum = 0;
+                            private int dir = 0;
+
+                            @Override
+                            public void run() {
+                                int offset = Math.min(10 + sum, 100);
+                                dir = keyCode;
+                                boolean moved = false;
+                                switch (dir) {
+                                    case KeyEvent.KEYCODE_DPAD_LEFT:
+                                        moved = director.scrollBy(moveGroup, offset, 0);
+                                        break;
+                                    case KeyEvent.KEYCODE_DPAD_UP:
+                                        moved = director.scrollBy(moveGroup, 0, offset);
+                                        break;
+                                    case KeyEvent.KEYCODE_DPAD_RIGHT:
+                                        moved = director.scrollBy(moveGroup, -offset, 0);
+                                        break;
+                                    case KeyEvent.KEYCODE_DPAD_DOWN:
+                                        moved = director.scrollBy(moveGroup, 0, -offset);
+                                        break;
+                                }
+                                if (moved) {
+                                    moveDistance += offset;
+                                    invalidate();
+                                    sum++;
+                                    post(this);
+                                } else {
+                                    // move complete at the bottom
+                                    intercept = true;
+                                    releaseLongPress();
+                                    // find new focus
+                                    focusManager.moveFocusBy(focusManager.getFocus(), moveDistance, convertKeyCodeToFocusDir(keyCode));
+                                }
+                            }
+                        };
+                        post(moveAction);
                     }
                 }
             } else if (KeyEvent.ACTION_UP == action) {
