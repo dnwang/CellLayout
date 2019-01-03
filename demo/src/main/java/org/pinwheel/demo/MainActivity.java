@@ -142,6 +142,11 @@ public final class MainActivity extends Activity {
                     text.setBackgroundColor(isSelected ? Color.WHITE : Color.TRANSPARENT);
                     text.setTextColor(isSelected ? Color.BLACK : Color.WHITE);
                 }
+
+                @Override
+                public void onRecycled(Cell cell, StyleAdapter.Holder holder) {
+                    onSelectChanged(cell, holder, false); // 清除状态
+                }
             })
             .addStyle(2, new StyleAdapter.Style(R.layout.item_style_poster) {
                 @Override

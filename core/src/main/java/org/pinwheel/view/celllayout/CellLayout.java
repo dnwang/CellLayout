@@ -1,9 +1,5 @@
 package org.pinwheel.view.celllayout;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.PropertyValuesHolder;
-import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Resources;
@@ -22,8 +18,6 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
-import android.view.animation.OvershootInterpolator;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -286,13 +280,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
-    private ValueAnimator movingAnim;
+    private Runnable movingAction;
 
     private abstract class AutoMovingAction {
         int sum;
         final int unitX, unitY;
-        //
-        final int dx, dy;
 
         AutoMovingAction(int dx, int dy) {
             final int absDx = Math.abs(dx);
@@ -300,14 +292,20 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             this.sum = Math.max(absDx, absDy) > 300 ? 12 : 8; // def: 6, 4
             this.unitX = absDx > sum ? (dx / sum) : (0 != dx ? (dx / absDx) : 0);
             this.unitY = absDy > sum ? (dy / sum) : (0 != dy ? (dy / absDy) : 0);
-            // just for value animation
-            this.dx = dx;
-            this.dy = dy;
+        }
+
+        final void stop() {
+            if (null != movingAction) {
+                removeCallbacks(movingAction);
+                flag &= ~FLAG_MOVING_AUTO;
+                director.notifyScrollComplete();
+            }
         }
 
         final void execute() {
+            stop();
             flag |= FLAG_MOVING_AUTO;
-            post(new Runnable() {
+            movingAction = new Runnable() {
                 @Override
                 public void run() {
                     onMove(unitX, unitY);
@@ -318,47 +316,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                         director.notifyScrollComplete();
                     }
                 }
-            });
-        }
-
-        /**
-         * replace {@link AutoMovingAction#execute()}
-         */
-        @Deprecated
-        final void executeByValueAnimation() {
-            if (null != movingAnim) {
-                movingAnim.end();
-            }
-            movingAnim = ValueAnimator.ofPropertyValuesHolder(
-                    PropertyValuesHolder.ofInt("x", 0, dx),
-                    PropertyValuesHolder.ofInt("y", 0, dy));
-            movingAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                int dx = 0, dy = 0;
-
-                @Override
-                public void onAnimationUpdate(ValueAnimator anim) {
-                    final int tmpX = (int) anim.getAnimatedValue("x");
-                    final int tmpY = (int) anim.getAnimatedValue("y");
-                    onMove(tmpX - dx, tmpY - dy);
-                    dx = tmpX;
-                    dy = tmpY;
-                }
-            });
-            movingAnim.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationStart(Animator animation, boolean isReverse) {
-                    flag |= FLAG_MOVING_AUTO;
-                }
-
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    flag &= ~FLAG_MOVING_AUTO;
-                    director.notifyScrollComplete();
-                }
-            });
-            movingAnim.setInterpolator(new DecelerateInterpolator());
-            movingAnim.setDuration(300);
-            movingAnim.start();
+            };
+            post(movingAction);
         }
 
         abstract void onMove(final int dx, final int dy);
@@ -366,8 +325,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
     final static float SCALE_MAX = 1.1f;
     final static float SCALE_MIN = 1.0f;
-
-    private ValueAnimator scaleAnim;
 
     private final class SwitchScaleAction {
         int sum = 8;// def: 4
@@ -403,47 +360,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     }
                 }
             });
-        }
-
-        /**
-         * replace {@link SwitchScaleAction#execute()}
-         */
-        @Deprecated
-        final void executeByValueAnimation() {
-            if (null != scaleAnim) {
-                scaleAnim.end();
-            }
-            scaleAnim = ValueAnimator.ofFloat(0f, SCALE_MAX - SCALE_MIN);
-            scaleAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator anim) {
-                    final float scale = (float) anim.getAnimatedValue();
-                    if (null != zoomIn) {
-                        zoomIn.setScaleX(SCALE_MAX - scale);
-                        zoomIn.setScaleY(SCALE_MAX - scale);
-                    }
-                    if (null != zoomOut) {
-                        zoomOut.setScaleX(SCALE_MIN + scale);
-                        zoomOut.setScaleY(SCALE_MIN + scale);
-                    }
-                    invalidate();
-                }
-            });
-            scaleAnim.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationStart(Animator animation, boolean isReverse) {
-                    flag |= FLAG_SCALING;
-                }
-
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    flag &= ~FLAG_SCALING;
-
-                }
-            });
-            scaleAnim.setInterpolator(new OvershootInterpolator());
-            scaleAnim.setDuration(300);
-            scaleAnim.start();
         }
     }
 
@@ -591,7 +507,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
 
                             @Override
                             public void run() {
-                                int offset = Math.min(10 + sum, 100);
+                                final int offset = Math.min(10 + sum, 80);
                                 dir = keyCode;
                                 boolean moved = false;
                                 switch (dir) {
@@ -627,6 +543,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 }
             } else if (KeyEvent.ACTION_UP == action) {
                 if (!intercept) {
+                    // auto move to stop
+                    final int autoMoveDistance = (moveGroup.getOrientation() == LinearGroup.HORIZONTAL ? getMeasuredWidth() : getMeasuredHeight()) / 2;
+                    if (moveDistance > autoMoveDistance * 2) {
+                        moveDistance += autoMoveDistance;
+                    }
                     releaseLongPress();
                     // find new focus
                     focusManager.moveFocusBy(focusManager.getFocus(), moveDistance, convertKeyCodeToFocusDir(keyCode));
