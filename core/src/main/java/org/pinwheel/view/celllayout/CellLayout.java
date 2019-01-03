@@ -294,16 +294,10 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             this.unitY = absDy > sum ? (dy / sum) : (0 != dy ? (dy / absDy) : 0);
         }
 
-        final void stop() {
+        final void execute() {
             if (null != movingAction) {
                 removeCallbacks(movingAction);
-                flag &= ~FLAG_MOVING_AUTO;
-                director.notifyScrollComplete();
             }
-        }
-
-        final void execute() {
-            stop();
             flag |= FLAG_MOVING_AUTO;
             movingAction = new Runnable() {
                 @Override
@@ -787,8 +781,9 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onVisibleChanged(final Cell cell) {
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
-                // the cache set null, it will be skip measure
-//                final View cache = (flag & FLAG_MOVING_LONG_PRESS) != 0 ? null : pool.obtain(cell, true);
+                // 1. the cache set null, it will be skip measure
+//                final View cache = (!cell.isNoHolder() && (flag & FLAG_MOVING_LONG_PRESS) != 0) ? null : pool.obtain(cell, true);
+                // 2. always use holder, maybe scroll fast
                 final View cache = cell.isNoHolder() ? pool.obtain(cell, true) : null;
                 if (null != cache) {
                     bindContentToCell(cell, cache);
