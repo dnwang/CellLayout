@@ -146,6 +146,7 @@ public final class MainActivity extends Activity {
                 @Override
                 public void onRecycled(Cell cell, StyleAdapter.Holder holder) {
                     onSelectChanged(cell, holder, false); // 清除状态
+                    ((ImageView) holder.get(R.id.image)).setImageResource(0);
                 }
             })
             .addStyle(2, new StyleAdapter.Style(R.layout.item_style_poster) {

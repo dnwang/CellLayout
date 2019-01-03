@@ -205,6 +205,7 @@ final class CellDirector {
     private boolean setVisibleState(Cell cell) {
         final boolean oldState = cell.isVisible();
         final Rect area = new Rect(root);
+        // expand visible area
         area.inset(-area.width() / 5, -area.height() / 5);
         cell.setVisible(Rect.intersects(area, cell));
         return oldState != cell.isVisible();

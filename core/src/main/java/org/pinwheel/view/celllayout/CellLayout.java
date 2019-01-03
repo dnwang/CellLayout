@@ -21,7 +21,9 @@ import android.view.ViewGroup;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Copyright (C), 2018 <br>
@@ -579,27 +581,18 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     @Override
     public void draw(final Canvas canvas) {
         focusOrder = -1;
-        onDrawHolders(canvas);
-        super.draw(canvas);
-    }
-
-    private void onDrawHolders(final Canvas canvas) {
-        if (null == holderDrawable) return;
-        viewManager.foreachActiveCells(new Filter<Cell>() {
-            @Override
-            public boolean call(Cell cell) {
-                if (!cell.hasContent()) {
-                    cell.computeParentScroll();
-                    final int l = cell.getLayoutX() + cell.getParentScrollX();
-                    final int t = cell.getLayoutY() + cell.getParentScrollY();
-                    canvas.save();
-                    setClipRectBy(canvas, cell);
-                    holderDrawable.onDraw(canvas, cell, l, t);
-                    canvas.restore();
-                }
-                return false;
+        if (null != holderDrawable) {
+            for (Cell cell : viewManager.holderCells) {
+                cell.computeParentScroll();
+                final int l = cell.getLayoutX() + cell.getParentScrollX();
+                final int t = cell.getLayoutY() + cell.getParentScrollY();
+                canvas.save();
+                setClipRectBy(canvas, cell);
+                holderDrawable.onDraw(canvas, cell, l, t);
+                canvas.restore();
             }
-        });
+        }
+        super.draw(canvas);
     }
 
     private int focusOrder = -1;
@@ -716,6 +709,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         private ViewAdapter adapter;
         private final SparseArray<ViewPool> poolMap = new SparseArray<>();
         private final HashMap<Cell, View> activeCells = new HashMap<>();
+        private final Set<Cell> holderCells = new HashSet<>();
 
         void setAdapter(ViewAdapter adapter) {
             checkAndReleaseCache(true);
@@ -731,6 +725,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     cell.clearAllState();
                 }
                 // clear reference
+                holderCells.clear();
                 activeCells.clear();
                 final int size = poolMap.size();
                 for (int i = 0; i < size; i++) {
@@ -755,13 +750,6 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             return 0 == activeCells.size();
         }
 
-        void foreachActiveCells(Filter<Cell> filter) {
-            Collection<Cell> cells = activeCells.keySet();
-            for (Cell cell : cells) {
-                filter.call(cell);
-            }
-        }
-
         View findViewByCell(Cell cell) {
             return activeCells.get(cell);
         }
@@ -781,17 +769,18 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onVisibleChanged(final Cell cell) {
             final ViewPool pool = getViewPool(cell);
             if (cell.isVisible()) { // add active view
-                // 1. the cache set null, it will be skip measure
-//                final View cache = (!cell.isNoHolder() && (flag & FLAG_MOVING_LONG_PRESS) != 0) ? null : pool.obtain(cell, true);
-                // 2. always use holder, maybe scroll fast
-                final View cache = cell.isNoHolder() ? pool.obtain(cell, true) : null;
+                final boolean useHolder = (flag & FLAG_MOVING_LONG_PRESS) != 0;
+                // always use holder, maybe scroll fast
+                final View cache = (!cell.isNoHolder() && useHolder) ? null : pool.obtain(cell, true);
                 if (null != cache) {
                     bindContentToCell(cell, cache);
                 } else { // holder
                     cell.setHasContent(false);
                     activeCells.put(cell, null);
+                    holderCells.add(cell);
                 }
             } else { // remove active view
+                holderCells.remove(cell);
                 final View v = activeCells.remove(cell);
                 if (cell.hasContent()) {
                     cell.setHasContent(false);
@@ -848,6 +837,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             cell.setHasContent(true);
             cell.setFocusable(v.isFocusable());
             activeCells.put(cell, v);
+            holderCells.remove(cell);
             // restore state
             if (cell.hasFocus()) {
                 v.setScaleX(SCALE_MAX);
@@ -875,6 +865,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 Log.i(TAG, "[info] poolMap_style_" + poolMap.keyAt(i) + " size: " + poolMap.valueAt(i).size());
             }
             Log.i(TAG, "[info] activeCells size: " + activeCells.size());
+            Log.i(TAG, "[info] holderCells size: " + holderCells.size());
             Log.i(TAG, "[info] --------------------------");
         }
     }
