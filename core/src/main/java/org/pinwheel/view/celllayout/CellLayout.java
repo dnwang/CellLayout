@@ -282,6 +282,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         }
     }
 
+    private Sync.Action moveCompleteAction;
     private Runnable movingAction;
 
     private abstract class AutoMovingAction {
@@ -310,6 +311,11 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                     } else {
                         flag &= ~FLAG_MOVING_AUTO;
                         director.notifyScrollComplete();
+                        // call complete
+                        if (null != moveCompleteAction) {
+                            Sync.execute(moveCompleteAction);
+                            moveCompleteAction = null;
+                        }
                     }
                 }
             };
@@ -362,7 +368,17 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
     @Override
     protected void onFocusChanged(boolean gainFocus, int direction, android.graphics.Rect previouslyFocusedRect) {
         super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
-        focusManager.onWrapperFocusChanged(gainFocus);
+        if (!gainFocus && isMoving()) { // system focus move out when cells are moving
+            // wait view visible state change complete
+            moveCompleteAction = new Sync.Action() {
+                @Override
+                public void call(Object o) {
+                    focusManager.onWrapperFocusChanged(false);
+                }
+            };
+        } else {
+            focusManager.onWrapperFocusChanged(gainFocus);
+        }
     }
 
     @Override
@@ -839,7 +855,7 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             activeCells.put(cell, v);
             holderCells.remove(cell);
             // restore state
-            if (cell.hasFocus()) {
+            if (hasFocus() && cell.hasFocus()) {
                 v.setScaleX(SCALE_MAX);
                 v.setScaleY(SCALE_MAX);
             }
@@ -880,18 +896,18 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
         void onWrapperFocusChanged(final boolean gainFocus) {
             if (null != focusCell) {
                 final View view = viewManager.findViewByCell(focusCell);
-                final View fromView = gainFocus ? null : view;
                 final Cell fromCell = gainFocus ? null : focusCell;
-                final View toView = gainFocus ? view : null;
+                final View from = gainFocus ? null : view;
                 final Cell toCell = gainFocus ? focusCell : null;
+                final View to = gainFocus ? view : null;
                 if (SCALE_FOCUS) {
-                    new SwitchScaleAction(fromView, toView).execute();
+                    new SwitchScaleAction(from, to).execute();
                 }
                 if (viewManager.adapter instanceof OnCellSelectedChangeListener) {
-                    ((OnCellSelectedChangeListener) viewManager.adapter).onSelectedChanged(fromCell, fromView, toCell, toView);
+                    ((OnCellSelectedChangeListener) viewManager.adapter).onSelectedChanged(fromCell, from, toCell, to);
                 }
                 if (null != onCellSelectedChangeListener) {
-                    onCellSelectedChangeListener.onSelectedChanged(fromCell, fromView, toCell, toView);
+                    onCellSelectedChangeListener.onSelectedChanged(fromCell, from, toCell, to);
                 }
             }
         }

@@ -51,19 +51,34 @@ public final class MainActivity extends Activity {
             @Override
             public boolean onClick(Cell cell) {
                 Toast.makeText(MainActivity.this, "click: " + cell.getId(), Toast.LENGTH_SHORT).show();
-                return false;
+                return false; // 返回true，将不派发到子视图监听
             }
         });
         cellLayout.setOnRootCellScrollListener(new CellGroup.OnScrollAdapter() {
+            @Override
+            public void onScroll(CellGroup group, int dx, int dy) {
+                // 移动中
+            }
+
+            @Override
+            public void onScrollComplete(CellGroup group) {
+                // 移动结束
+            }
+
+            @Override
+            public void onScrollToStart(CellGroup group) {
+                // 移动到顶部
+            }
+
             @Override
             public void onScrollToEnd(CellGroup group) {
                 final Cell root = cellLayout.getContentCell();
                 if (root instanceof LinearGroup && ((LinearGroup) root).getOrientation() == LinearGroup.VERTICAL) {
                     try {
                         final TemplateFactory.Template template = TemplateFactory.load(IOUtils.stream2String(getResources().getAssets().open("sample.json")));
-                        mergeData(template.data);
-                        cellLayout.addCell(template.root);
-                        cellLayout.requestLayout(); // apply
+                        mergeData(template.data); // 数据可有可无
+                        cellLayout.addCell(template.root); // 追加一组模板到最后
+                        cellLayout.requestLayout(); // 应用更改
                     } catch (JSONException | IOException e) {
                         e.printStackTrace();
                     }
@@ -134,10 +149,15 @@ public final class MainActivity extends Activity {
                             Toast.makeText(MainActivity.this, "OnClickListener", Toast.LENGTH_SHORT).show();
                         }
                     });
+                    // 如果绑定了一个已获取焦点的Cell，要直接展示它的焦点状态
+                    if (cell.hasFocus()) {
+                        onSelectChanged(cell, holder, true);
+                    }
                 }
 
                 @Override
                 public void onSelectChanged(Cell cell, StyleAdapter.Holder holder, boolean isSelected) {
+                    // 获得焦点
                     final TextView text = holder.get(R.id.desc);
                     text.setBackgroundColor(isSelected ? Color.WHITE : Color.TRANSPARENT);
                     text.setTextColor(isSelected ? Color.BLACK : Color.WHITE);
@@ -145,7 +165,8 @@ public final class MainActivity extends Activity {
 
                 @Override
                 public void onRecycled(Cell cell, StyleAdapter.Holder holder) {
-                    onSelectChanged(cell, holder, false); // 清除状态
+                    // 视图被移除可见区域应该清除状态，避免复用时存在历史状态
+                    onSelectChanged(cell, holder, false);
                     ((ImageView) holder.get(R.id.image)).setImageResource(0);
                 }
             })

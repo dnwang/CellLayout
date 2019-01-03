@@ -21,6 +21,9 @@ final class Sync {
 
     private static int count = 0;
 
+    /**
+     * call method on UIThread
+     */
     static void prepare() {
         count++;
         if (null != sync) {
@@ -32,6 +35,9 @@ final class Sync {
         handler = new Handler(sync.getLooper());
     }
 
+    /**
+     * call method on UIThread
+     */
     static void release() {
         count--;
         if (count <= 0 && null != sync) {
