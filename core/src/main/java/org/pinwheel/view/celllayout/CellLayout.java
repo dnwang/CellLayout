@@ -900,35 +900,42 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
             return focusCell;
         }
 
-        void setFocus(final Cell cell) {
-            final View from = viewManager.findViewByCell(focusCell);
-            final View to = viewManager.findViewByCell(cell);
-            if (null != from || null != to) {
-                if (SCALE_FOCUS) {
-                    new SwitchScaleAction(from, to).execute();
-                }
-                if (viewManager.adapter instanceof OnCellSelectedChangeListener) {
-                    ((OnCellSelectedChangeListener) viewManager.adapter).onSelectedChanged(focusCell, from, cell, to);
-                }
-                if (null != onCellSelectedChangeListener) {
-                    onCellSelectedChangeListener.onSelectedChanged(focusCell, from, cell, to);
-                }
-            }
+        void setFocus(final Cell toCell) {
             if (null != focusCell) {
                 focusCell.setFocus(false);
             }
-            focusCell = cell;
-            if (null != focusCell) {
-                focusCell.setFocus(true);
-                checkAndMoveFocusVisible();
+            if (null != toCell) {
+                toCell.setFocus(true);
+                checkAndMoveFocusVisible(toCell);
             }
+            final Cell fromCell = focusCell;
+            focusCell = toCell;
+            // notify
+            Sync.execute(new Sync.Action() {
+                @Override
+                public void call(Object o) {
+                    final View from = viewManager.findViewByCell(fromCell);
+                    final View to = viewManager.findViewByCell(toCell);
+                    if (null != from || null != to) {
+                        if (SCALE_FOCUS) {
+                            new SwitchScaleAction(from, to).execute();
+                        }
+                        if (viewManager.adapter instanceof OnCellSelectedChangeListener) {
+                            ((OnCellSelectedChangeListener) viewManager.adapter).onSelectedChanged(fromCell, from, toCell, to);
+                        }
+                        if (null != onCellSelectedChangeListener) {
+                            onCellSelectedChangeListener.onSelectedChanged(fromCell, from, toCell, to);
+                        }
+                    }
+                }
+            });
         }
 
-        private void checkAndMoveFocusVisible() {
+        private void checkAndMoveFocusVisible(Cell cell) {
             final Rect area = new Rect(director.getRoot());
             area.inset(area.width() / 6, area.height() / 6);
             int dx = 0, dy = 0;
-            final int l = focusCell.getLeft(), t = focusCell.getTop(), r = focusCell.getRight(), b = focusCell.getBottom();
+            final int l = cell.getLeft(), t = cell.getTop(), r = cell.getRight(), b = cell.getBottom();
             if (l < area.getLeft()) {
                 dx = area.getLeft() - l;
             } else if (r > area.getRight()) {
@@ -940,8 +947,8 @@ public class CellLayout extends ViewGroup implements CellDirector.LifeCycleCallb
                 dy = area.getBottom() - b;
             }
             if (0 != dx || 0 != dy) {
-                final LinearGroup vLinear = director.findLinearGroupBy(focusCell, LinearGroup.VERTICAL);
-                final LinearGroup hLinear = director.findLinearGroupBy(focusCell, LinearGroup.HORIZONTAL);
+                final LinearGroup vLinear = director.findLinearGroupBy(cell, LinearGroup.VERTICAL);
+                final LinearGroup hLinear = director.findLinearGroupBy(cell, LinearGroup.HORIZONTAL);
                 new AutoMovingAction(dx, dy) {
                     @Override
                     void onMove(final int dx, final int dy) {
